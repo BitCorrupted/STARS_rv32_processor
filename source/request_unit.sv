@@ -19,7 +19,8 @@ module request_unit(
     input logic busy_o,
     output logic [31:0] data_read,
     input logic memread, memwrite,
-    input logic [31:0] alu_result
+    input logic [31:0] alu_result,
+    output logic [3:0] sel_i
 
 
 );
