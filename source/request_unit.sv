@@ -8,6 +8,21 @@ cpu_dat_o = data that was read from memory (could be instruction fetch or could 
 busy_o = the bus is busy
 */
 
+module request_unit(
+    input logic clk, rst,
+    input logic [4:0] data_address, instruction_address,
+    output logic read_i, write_i,
+    output logic [31:0] cpu_dat_i,
+    output logic [31:0] instruction,
+    output logic [4:0] adr_i,
+    input logic [31:0] cpu_dat_o,
+    input logic busy_o,
+    output logic [31:0] data_read,
+    input logic memread, memwrite,
+    input logic [31:0] alu_result
+
+
+);
 
 always_ff @(posedge clk, negedge rst) begin
     if(!rst) begin
@@ -37,21 +52,27 @@ end
         next_instruction = instruction;
         if(memread = 1'b1) begin
             next_read = 1'b1; // indicating that we want to read data from the memory in sram
+            next_write = 1'b0;
             if(!busy_o) begin // if it is not busy, we can start indicating our next address
                 next_adr = data_address;
-                reg_d = cpu_dat_o; // write back
+                data_read = cpu_dat_o; // write back
             end 
         end else if (memwrite = 1'b1) begin
             next_write = 1'b1;
+            next_read = 1'b0;
             if(!busy_o) begin
                 next_adr = data_address; 
-                next_cpu_dat = result; // alu result
+                next_cpu_dat = alu_result; // alu result
             end
         end else begin
             next_read = 1'b1;
+            next_write = 1'b0;
             if(!busy_o)  begin
                 next_adr = instruction_address; 
                 next_instruction = cpu_dat_o; 
             end
     end
 end
+
+
+endmodule
