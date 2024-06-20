@@ -50,7 +50,7 @@ end
         end else begin
             next_read = 1'b1;
             if(!busy_o)  begin
-                next_adr = data_address; 
+                next_adr = instruction_address; 
                 next_instruction = cpu_dat_o; 
             end
     end
