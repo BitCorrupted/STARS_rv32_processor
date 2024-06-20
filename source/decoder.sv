@@ -27,7 +27,13 @@ always_comb begin
     if (opcode == 0110111) begin
         inst_type = U;
     end
-end
-//change
+
+    case (inst_type) begin
+        R: 
+
+    end
+    
+    end
+    
 endmodule
 

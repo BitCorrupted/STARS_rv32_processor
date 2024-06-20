@@ -19,7 +19,8 @@ module request_unit(
     input logic busy_o,
     output logic [31:0] data_read,
     input logic memread, memwrite,
-    input logic [31:0] alu_result
+    input logic [31:0] alu_result,
+    output logic [3:0] sel_i
 
 
 );
@@ -32,6 +33,8 @@ always_ff @(posedge clk, negedge rst) begin
         cpu_dat_i <= '0;
         sel_i <= '0;
         instruction <= '0;
+        d_hit <= 1'b0;
+        i_hit <= 1'b0;
     end else begin
         read_i <= next_read;
         write_i <= next_write;
@@ -39,9 +42,12 @@ always_ff @(posedge clk, negedge rst) begin
         cpu_dat_i <= next_cpu_dat;
         sel_i <= 4'd15;
         instruction <= next_instruction;
+        d_hit <= next_d_hit;
+        i_hit <= next_i_hit;
     end
 end
 
+    logic d_hit, i_hit;
 
     always_comb begin
         // if we are busy, we want to retain our current values below
@@ -50,26 +56,31 @@ end
         next_write = write_i;
         next_cpu_dat = cpu_dat_i;
         next_instruction = instruction;
+        next_d_hit = d_hit;
+        next_i_hit = i_hit;
         if(memread = 1'b1) begin
             next_read = 1'b1; // indicating that we want to read data from the memory in sram
-            next_write = 1'b0;
             if(!busy_o) begin // if it is not busy, we can start indicating our next address
                 next_adr = data_address;
                 data_read = cpu_dat_o; // write back
+                next_d_hit = 1'b1;
+                next_i_hit = 1'b0;
             end 
         end else if (memwrite = 1'b1) begin
             next_write = 1'b1;
-            next_read = 1'b0;
             if(!busy_o) begin
                 next_adr = data_address; 
                 next_cpu_dat = alu_result; // alu result
+                next_d_hit = 1'b1;
+                next_i_hit = 1'b0;
             end
         end else begin
             next_read = 1'b1;
-            next_write = 1'b0;
             if(!busy_o)  begin
                 next_adr = instruction_address; 
-                next_instruction = cpu_dat_o; 
+                next_instruction = cpu_dat_o;
+                next_i_hit = 1'b1;
+                next_d_hit = 1'b0; 
             end
     end
 end
