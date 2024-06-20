@@ -18,6 +18,9 @@ module top (
 
   // Your code goes here...
   
+  //this is a test
+  assign green = pb[16];
+
 endmodule
 
 // Add more modules down here...
