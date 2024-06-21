@@ -77,7 +77,7 @@ end
                     next_read = 1'b1; // enabling read
                     next_write = 1'b0; // disabling write
                     next_adr = alu_result; // setting the address to the address computed by the alu
-                    next_request_type = 1'b1; 
+                    next_request_type = 1'b0; 
 
                 end else if (memwrite &&  !d_hit) begin // writing data into memory
 
