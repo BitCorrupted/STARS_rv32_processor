@@ -26,7 +26,8 @@ module ALU (
 input logic [31:0] rda, rdb,
 input logic [3:0] fop,
 output logic [31:0] result,
-output logic Z, N, C, V
+output logic Z, N
+//, C, V
 );
 
     always_comb begin
@@ -47,36 +48,36 @@ output logic Z, N, C, V
     assign Z = (result == 0) ? 1'b1 : 1'b0;
     assign N = result[31];
 
-    //carry out 
-    always_comb begin
-        if (fop == FOP_ADD || fop == FOP_SUB) begin
-            if ((fop == FOP_ADD) && rda[31] && rdb[31]) begin
-                C = 1'b1;
-            end if ((fop == FOP_SUB) && rda[31] && !rda[31]) begin
-                C = 1'b1;
-            end else
-                C = '0;
+    // //carry out 
+    // always_comb begin
+    //     if (fop == FOP_ADD || fop == FOP_SUB) begin
+    //         if ((fop == FOP_ADD) && rda[31] && rdb[31]) begin
+    //             C = 1'b1;
+    //         end if ((fop == FOP_SUB) && rda[31] && !rda[31]) begin
+    //             C = 1'b1;
+    //         end else
+    //             C = '0;
             
-        end
-        else C = '0;
-    end
+    //     end
+    //     else C = '0;
+    // end
 
-    //overflow
-    always_comb begin
-        if (fop == FOP_ADD) begin
-            if (rda[31] && rdb[31] && !result[31])
-                V = 1'b1;
-            if (!rda[31] && !rdb[31] && result[31])
-                V = 1'b1;
-            else
-                V = '0;
-        end
-            else if (fop == FOP_SUB) begin
-            if ((rda[31] && !rdb[31] && !result[31]) || (!rda[31] && rdb[31] && result[31]))
-                V = 1'b1;
-            else
-                V = '0;
-        end
-        else V = '0;
-    end
+    // //overflow
+    // always_comb begin
+    //     if (fop == FOP_ADD) begin
+    //         if (rda[31] && rdb[31] && !result[31])
+    //             V = 1'b1;
+    //         if (!rda[31] && !rdb[31] && result[31])
+    //             V = 1'b1;
+    //         else
+    //             V = '0;
+    //     end
+    //         else if (fop == FOP_SUB) begin
+    //         if ((rda[31] && !rdb[31] && !result[31]) || (!rda[31] && rdb[31] && result[31]))
+    //             V = 1'b1;
+    //         else
+    //             V = '0;
+    //     end
+    //     else V = '0;
+    // end
 endmodule
