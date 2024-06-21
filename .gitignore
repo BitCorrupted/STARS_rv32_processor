@@ -4,4 +4,4 @@ build/
 verilog.log
 abc.history
 Makefile
-tb.sv
+testbench/tb.sv
