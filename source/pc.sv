@@ -5,6 +5,7 @@ module pc(
     input logic branch_decision,
     input [31:0] pc_write_value,
     input logic pc_immediate_jump,
+    input logic in_en,
     logic clock,
     logic reset
 );
@@ -28,7 +29,10 @@ always_ff @(posedge clock, negedge reset) begin
         current_pc = 0;
     end
     else begin
-        current_pc = next_pc;
+        if(in_en)
+            current_pc = next_pc;
+        else
+            current_pc = current_pc;
     end
 
 end
