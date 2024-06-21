@@ -3,5 +3,3 @@ build/
 *.fst
 verilog.log
 abc.history
-Makefile
-testbench/tb.sv
