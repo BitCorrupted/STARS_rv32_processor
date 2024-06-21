@@ -1,4 +1,4 @@
-`timescale 1ms/10ps
+`timescale 1ns/10ps
 
 module tb;
 
@@ -18,7 +18,8 @@ register_file reg_f(.clk(clock), .rst(reset), .regA_address(regA_address),
 
 task reset_module;
        reset = 0;
-    #3; reset = 1;
+    #3; 
+    reset = 1;
     #3;
 endtask
 
@@ -45,12 +46,12 @@ task check_outputs;
         end
 
         if (exp_register_valB == regB_data) begin
-            $info("Correct regA output. test: %s", check_num);  
+            $info("Correct regB output. test: %s", check_num);  
 
         end
 
         else begin
-            $error("Incorrect regA output. Actual: %0d, Expected: %0d. test: %s", regB_data, exp_register_valB, check_num);
+            $error("Incorrect regB output. Actual: %0d, Expected: %0d. test: %s", regB_data, exp_register_valB, check_num);
         end
     end
     endtask 
@@ -59,17 +60,53 @@ initial begin
     // make sure to dump the signals so we can see them in the waveform
     $dumpfile("sim.vcd");
     $dumpvars(0, tb);
+    regA_address = '0;
+    regB_address = 5'd1;
+    reset = 1'b1;
+    register_write_en = 1'b0;
+    rd_address = 5'd0;
+    register_write_data = '0;
 
     //Test 0: on reset
     tb_test_name = "on reset";
     reset_module;
+    #3;
     for (integer i = 0; i < 32; i++) begin
         regA_address = i;
         regB_address = i;
         exp_register_valA = 32'b0;
         exp_register_valB = 32'b0;
         check_outputs(exp_register_valA, exp_register_valB, tb_test_name);
+        #6;
     end
+
+    //Test 1: write to each reg and read
+    tb_test_name = "write to rd";
+    #3;
+    register_write_en = 1'b1;
+    register_write_data = 32'd25;
+
+    for (integer i = 0; i < 32; i++) begin
+        rd_address = i;
+
+        //check_outputs(exp_register_valA, exp_register_valB, tb_test_name);
+        #6;
+    end
+    #3;
+    register_write_en = 1'b0;
+    for (integer i = 0; i < 32; i++) begin
+        regA_address = i;
+        regB_address = i;
+        exp_register_valA = 32'd25;
+        exp_register_valB = 32'd25;
+        check_outputs(exp_register_valA, exp_register_valB, tb_test_name);
+        #6;
+    end
+
+    
+
+
+
      $finish;
 end
 
