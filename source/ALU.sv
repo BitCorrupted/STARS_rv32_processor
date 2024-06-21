@@ -68,16 +68,15 @@ output logic Z, N
                 V = 1'b1;
             if (!rda[31] && !rdb[31] && result[31])
                 V = 1'b1;
-        if (fop == FOP_SUB) begin
+            else
+                V = '0;
+        end
+            else if (fop == FOP_SUB) begin
             if ((rda[31] && !rdb[31] && !result[31]) || (!rda[31] && rdb[31] && result[31]))
                 V = 1'b1;
-            
-        end else
-            V = '0;
+            else
+                V = '0;
         end
         else V = '0;
     end
-
-
-
 endmodule
