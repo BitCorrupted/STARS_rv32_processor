@@ -6,10 +6,10 @@ module tb;
     logic [31:0] inst1;
     logic [34:0] imm_gen;
     logic [4:0] rs1o, rs2o, rdo;
-    logic [2:0] type_out;
+    logic [2:0] type_out1;
     logic [16:0] control_out;
 
-    decoder dec1(.inst(inst1), .imm_gen(imm_gen), .rs1(rs1o), .rs2(rs2o), .rd(rdo), .type_out(type_out), .control_out(control_out));
+    decoder dec1(.inst(inst1), .imm_gen(imm_gen), .rs1(rs1o), .rs2(rs2o), .rd(rdo), .type_out(type_out1), .control_out(control_out));
 
     task r_type;
     input logic [6:0] funct7;
