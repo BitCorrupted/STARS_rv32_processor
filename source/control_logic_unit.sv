@@ -35,6 +35,7 @@ always_comb begin
         read_next_pc = 1'b0;
 
         case (instruction)
+        /*
         17'b00000000000110011: begin alu_op = FOP_ADD; end
         17'b01000000000110011: begin alu_op = FOP_SUB; end
         17'b00000001000110011: begin alu_op = FOP_XOR; end
@@ -45,6 +46,41 @@ always_comb begin
         17'b01000001010110011: begin alu_op = FOP_SRA; end
         // 17'b00000000100110011: begin alu_op = FOP_SLT; end
         // 17'b00000000110110011: begin alu_op = FOP_SLTU; end
+        */
+        17'b00000000000000011: begin end //lb
+        17'b00000000100000011: begin end //lw
+        17'b00000000000010011: begin end //addi
+        17'b00000000010010011: begin end //slli
+        17'b00000000100010011: begin end //slti
+        17'b00000000110010011: begin end //sltiu
+        17'b00000001000010011: begin end //xori
+        17'b00000001010010011: begin end //srli
+        17'b01000001010010011: begin end //srai
+        17'b00000001100010011: begin end //ori
+        17'b00000001110010011: begin end //andi
+        17'b00000000000100011: begin end //sb
+        17'b00000000100100011: begin end //sw
+        17'b00000000000110011: begin end //add
+        17'b01000000000110011: begin end //sub
+        17'b00000000010110011: begin end //sll
+        17'b00000000100110011: begin end //slt
+        17'b00000000110110011: begin end //sltu
+        17'b00000001000110011: begin end //xor
+        17'b00000001010110011: begin end //srl
+        17'b01000001010110011: begin end //sra
+        17'b00000001100110011: begin end //or
+        17'b00000001110110011: begin end //and
+        17'b00000000000110111: begin end //lui
+        17'b00000000011100011: begin end //beq
+        17'b00000001001100011: begin end //bne
+        17'b00000001011100011: begin end //blt
+        17'b00000001101100011: begin end //bge
+        17'b00000001111100011: begin end //bltu
+        17'b00000000001100011: begin end //bgeu
+        17'b00000000001100111: begin end //jalr
+        17'b00000000001101111: begin end //jal
+
+
 
 
 
