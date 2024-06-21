@@ -11,11 +11,14 @@ module imm_generator (
         case (type_i)
             I : imm_gen = {inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], 
             inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31:20]};
+
             S : imm_gen = {inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], 
             inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31:25], inst[11:7]};
+
             SB : imm_gen = {inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31],
             inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[7], inst[30:25], inst [11:8]};
             U : imm_gen = {inst[31:12], 12'd0};
+            
             UJ : imm_gen = {inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31], inst[31],
             inst[19:12], inst[20], inst[31:21]};
             default : imm_gen = '0;
