@@ -3,7 +3,7 @@ module decoder (
     output logic [34:0] imm_gen,
     output logic [4:0] rs1, rs2, rd,
     output logic [2:0] type_out,
-    output logic [19:0] control_out
+    output logic [16:0] control_out
 );
   typedef enum logic [2:0] {R = 0, I = 1, S = 2, SB = 3, UJ = 4, U = 5} inst_t;
   inst_t inst_type;
@@ -34,6 +34,7 @@ always_comb begin
     else begin
         inst_type = R;
     end
+    type_out = inst_type;
 end
 
 always_comb begin
@@ -48,7 +49,7 @@ always_comb begin
         default: begin funct7 = 7'b0; funct3 = 3'b0; rs1 = 5'b0; rs2 = 5'b0; rd = inst[11:7]; end
 
     endcase 
-    control_out = {type_out, opcode, funct3, funct7};
+    control_out = {opcode, funct3, funct7};
     end
     
 endmodule
