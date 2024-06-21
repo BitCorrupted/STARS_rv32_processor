@@ -23,7 +23,11 @@ end
 
 always_ff @(posedge clk, negedge rst) begin
     if (!rst) begin
-        registers_state <= '0;
+        for (integer i = 0; i < 32; i++) begin
+            registers_state[5'di] <= 32'b0;
+        end
+
+        //registers_state <= '{'0};
     end
 
     else begin
