@@ -1,10 +1,12 @@
 `timescale 1ms/10ps
+typedef enum logic [2:0] {BEQ = 1, BNE = 2, BLT = 3, BGE = 4, BLTU = 5, BGEU = 6, NONE = 0} b_t;
 module tb;
 
 logic [2:0] branch_type;
 logic ALU_neg_flag, ALU_zero_flag, b_out;
 
 string tb_test_name;
+integer exp_branch;
 
 branch_logic b(.branch_type(branch_type), .ALU_neg_flag(ALU_neg_flag), 
 .ALU_zero_flag(ALU_zero_flag), .b_out(b_out));
@@ -29,19 +31,79 @@ initial begin
     $dumpfile("sim.vcd");
     $dumpvars(0, tb);
     //Test 1 beq
-    tb_test_name = "beq branch"
+    tb_test_name = "beq branch";
 
     ALU_neg_flag = 0;
     ALU_zero_flag = 1;
     branch_type = 3'd1;
 
     exp_branch = 1;
+    #1
     check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 2 no branch
+    tb_test_name = "no beq branch";
+
+    ALU_neg_flag = 0;
+    ALU_zero_flag = 1;
+    branch_type = 3'd2;
+
+    exp_branch = 0;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 3 bne branch
+    tb_test_name = "bne branch";
+
+    ALU_neg_flag = 1;
+    ALU_zero_flag = 0;
+    branch_type = 3'd2;
+
+    exp_branch = 1;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 4 no bne branch
+    tb_test_name = "no bne branch";
+
+    ALU_neg_flag = 1;
+    ALU_zero_flag = 0;
+    branch_type = 3'd0;
+
+    exp_branch = 0;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 5 blt branch
+    tb_test_name = "blt branch";
+
+    ALU_neg_flag = 1;
+    ALU_zero_flag = 0;
+    branch_type = 3'd3;
+
+    exp_branch = 1;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+
+
+
 
      $finish;
 end
 
 endmodule
+
 
 module branch_logic(
     input logic [2:0] branch_type,
@@ -50,25 +112,33 @@ module branch_logic(
 );
 
 always_comb begin
-    if ((branch_type == 3'd1)&&(ALU_zero_flag)) begin
+    if ((branch_type == BEQ)&&(ALU_zero_flag)) begin
         b_out = 1'b1;
 
     end
 
-    else if ((branch_type == 3'd2) && (!ALU_zero_flag)) begin
+    else if ((branch_type == BNE) && (!ALU_zero_flag)) begin
         b_out = 1'b1;
 
     end
 
-    else if ((branch_type == 3'd3) && (ALU_neg_flag)) begin
+    else if ((branch_type == BLT) && (ALU_neg_flag)) begin
         b_out = 1'b1;
     end
     
-    else if((branch_type == 3'd4) && (!ALU_neg_flag) && (!ALU_zero_flag)) begin
+    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_zero_flag)) begin
         b_out = 1'b1;
     end
 
-    else if ((branch_type == 3'b0)) begin
+    else if ((branch_type == BLTU) && (ALU_neg_flag)) begin
+        b_out = 1'b1;
+    end
+    
+    else if((branch_type == BGEU) && (!ALU_neg_flag) && (!ALU_zero_flag)) begin
+        b_out = 1'b1;
+    end
+
+    else if ((branch_type == NONE)) begin
         b_out = 1'b0;
 
     end
