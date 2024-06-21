@@ -11,7 +11,7 @@ always_comb begin
     end
 
     else if ((branch_type == 3'd2) && (!ALU_zero_flag)) begin
-        b_out = 1'b1
+        b_out = 1'b1;
 
     end
 
