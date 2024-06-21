@@ -12,7 +12,7 @@ typedef enum logic [3:0] {
     } fop_t;
 
 typedef enum logic [2:0] {BEQ = 1, BNE = 2, BLT = 3, BGE = 4, BLTU = 5, BGEU = 6, NONE = 0} b_t;
-
+ 
 module control_logic_unit(
     input logic [2:0] i_type,
     input logic [16:0] instruction,
