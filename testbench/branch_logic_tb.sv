@@ -35,7 +35,7 @@ initial begin
 
     ALU_neg_flag = 0;
     ALU_zero_flag = 1;
-    branch_type = 3'd1;
+    branch_type = BEQ;
 
     exp_branch = 1;
     #1
@@ -48,7 +48,7 @@ initial begin
 
     ALU_neg_flag = 0;
     ALU_zero_flag = 1;
-    branch_type = 3'd2;
+    branch_type = BNE;
 
     exp_branch = 0;
     #1
@@ -90,6 +90,97 @@ initial begin
     branch_type = 3'd3;
 
     exp_branch = 1;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 6 no blt branch
+    tb_test_name = "no blt branch";
+
+    ALU_neg_flag = 1;
+    ALU_zero_flag = 0;
+    branch_type = 3'd4;
+
+    exp_branch = 0;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 7 bge branch
+    tb_test_name = "bge branch";
+
+    ALU_neg_flag = 0;
+    ALU_zero_flag = 0;
+    branch_type = 3'd4;
+
+    exp_branch = 1;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 8 no bge branch
+    tb_test_name = "no bge branch";
+
+    ALU_neg_flag = 0;
+    ALU_zero_flag = 0;
+    branch_type = 3'd5;
+
+    exp_branch = 0;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 9 bltu branch
+    tb_test_name = "bltu branch";
+
+    ALU_neg_flag = 1;
+    ALU_zero_flag = 0;
+    branch_type = 3'd5;
+
+    exp_branch = 1;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 10 no bltu branch
+    tb_test_name = "no bltu branch";
+
+    ALU_neg_flag = 1;
+    ALU_zero_flag = 0;
+    branch_type = 3'd6;
+
+    exp_branch = 0;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 11 bgeu branch
+    tb_test_name = "bgeu branch";
+
+    ALU_neg_flag = 0;
+    ALU_zero_flag = 0;
+    branch_type = 3'd6;
+
+    exp_branch = 1;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
+
+    //Test 12 no bgeu branch
+    tb_test_name = "no bgeu branch";
+
+    ALU_neg_flag = 0;
+    ALU_zero_flag = 0;
+    branch_type = 3'd0;
+
+    exp_branch = 0;
     #1
     check_outputs(exp_branch, tb_test_name);
 

@@ -71,12 +71,10 @@ module ALU (
     end
 endmodule
 
-module tb (
-    input logic [31:0] tb_rda, tb_rdb,
-    input logic [3:0] tb_fop,
-    output logic [31:0] tb_result,
-    output logic tb_Z, tb_N, tb_V, tb_C
-);
+module tb;
+    logic [31:0] tb_rda, tb_rdb, tb_result;
+    logic [3:0] tb_fop;
+    logic tb_Z, tb_N, tb_V, tb_C;
 
     ALU tb_alu (.rda(tb_rda), .rdb(tb_rdb), .fop(tb_fop), .result(tb_result), .Z(tb_Z), .N(tb_N), .V(tb_V), .C(tb_C));
 
@@ -140,23 +138,306 @@ module tb (
         passed_C_tests++;
     endtask
 
-    task add
+    task ADD;
+        
+    //14+2=16
+        tb_rda = 32'd14;
+        tb_rdb = 32'd2;
+        tb_fop = FOP_ADD;
+        #1;
+        exp_result = 32'd16;
+        exp_Z = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
+        
+    //4294967296 + 1 = 0 (carry out should be on)
+        tb_rda = 32'b011111111111111111111111111111111;
+        tb_rdb = 32'b1;
+        tb_fop = FOP_ADD;
+        #1;
+        exp_result = 32'd0;
+        exp_Z = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 1;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
     endtask
-    task sub
+
+    task SUB;
+        tb_rda = 32'd68;
+        tb_rdb = 32'd29;
+        tb_fop = FOP_SUB;
+        #1;
+        exp_result = 32'd39;
+        exp_Z = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
     endtask
-    task sll
+
+    task SLL;
+        tb_rda = 32'd7;
+        tb_rdb = 32'd2;
+        tb_fop = FOP_SLL;
+        #1;
+        exp_result = 32'd28;
+        exp_Z = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
     endtask
-    task srl
+
+    task SRL;
+        tb_rda = 32'd470;
+        tb_rdb = 32'd1;
+        tb_fop = FOP_SRL;
+        #1;
+        exp_result = 235;
+        exp_Z = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
     endtask
-    task sra
+
+    task SRA;
+        tb_rda = 32'b10000000000000000000000000000001;
+        tb_rdb = 5;
+        tb_fop = FOP_SRA;
+        #1;
+        exp_result = 32'b11111100000000000000000000000000;
+        exp_Z = 0;
+        exp_N = 1;
+        exp_V = 0;                                                              //WRONG
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
     endtask
-    task and
+
+    task AND;
+        tb_rda = 32'b10101000010111101010101011100001;
+        tb_rdb = 32'b10101000010111101010101011100001;
+        tb_fop = FOP_AND;
+        #1;
+        exp_result = 32'b10101000010111101010101011100001;
+        exp_Z = 0;
+        exp_N = 1;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
     endtask
-    task or
+
+    task OR;
+        tb_rda = 32'b11010011010100101010101011010001;
+        tb_rdb = 32'b0;
+        tb_fop = FOP_OR;
+        #1;
+        exp_result = 32'b11010011010100101010101011010001;
+        exp_Z = 0;
+        exp_N = 1;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
     endtask
-    task xor
+
+    task XOR;
+        tb_rda = 32'b010001010101101111011100011100000;
+        tb_rdb = 32'b010001010101101111011100011100000;
+        tb_fop = FOP_XOR;
+        #1;
+        exp_result = 32'b0;
+        exp_Z = 1;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
     endtask
-    task imm
+
+    task IMM;
+        tb_rda = 32'b10101010101010010000011100010001;
+        tb_rdb = 32'd981247;
+        tb_fop = FOP_IMM;
+        #1;
+        exp_result = 32'd981247;
+        exp_Z = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
     endtask
+
+    task Z;
+        tb_rda = 32'b10010101010100000110101011010100;
+        tb_rdb = 32'b10010101010100000110101011010100;
+        tb_fop = FOP_SUB;
+        #1;
+        exp_result = 32'b0;
+        exp_Z = 1'b1;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
+    endtask
+
+    task N;
+        tb_rda = 32'd762;
+        tb_rdb = 32'd1000;
+        tb_fop = FOP_SUB;
+        #1;
+        exp_result = -238;
+        exp_Z = 0;
+        exp_N = 1'b1;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result ();
+        check_Z ();
+        check_N ();
+        check_V ();
+        check_C ();
+        #1;
+    endtask
+
+    // task C;
+    //     tb_rda = ;
+    //     tb_rdb = ;
+    //     tb_fop = FOP_;
+    //     #1;
+    //     exp_result = ;
+    //     exp_Z = ;
+    //     exp_N = ;
+    //     exp_V = ;
+    //     exp_C = ;
+    //     #1;
+    //     check_result ();
+    //     check_Z ();
+    //     check_N ();
+    //     check_V ();
+    //     check_C ();
+    //     #1;
+    // endtask
+
+    // task V;
+    //     tb_rda = ;
+    //     tb_rdb = ;
+    //     tb_fop = FOP_;
+    //     #1;
+    //     exp_result = ;
+    //     exp_Z = ;
+    //     exp_N = ;
+    //     exp_V = ;
+    //     exp_C = ;
+    //     #1;
+    //     check_result ();
+    //     check_Z ();
+    //     check_N ();
+    //     check_V ();
+    //     check_C ();
+    //     #1;
+    // endtask
+
+
+initial begin
+    $dumpfile("sim.vcd");
+    $dumpvars(0, tb);
+
+    ADD;
+    #1;
+    SUB;
+    #1;
+    SLL;
+    #1;
+    SRL;
+    #1;
+    SRA;
+    #1;
+    AND;
+    #1;
+    OR;
+    #1;
+    XOR;
+    #1;
+    IMM;
+    #1;
+    Z;
+    #1;
+    N;
+    #1;
+    // C;
+    // #1;
+    // V;
+    // #1;
+    
+    $finish;
+end
 
 endmodule
