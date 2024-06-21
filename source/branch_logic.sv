@@ -1,5 +1,5 @@
 module branch_logic(
-    input logic [3:0] branch_type,
+    input logic [2:0] branch_type,
     input logic ALU_neg_flag, ALU_zero_flag,
     output logic b_out
 );
