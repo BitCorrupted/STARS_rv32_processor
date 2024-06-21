@@ -20,7 +20,7 @@ module control_logic_unit(
     mem_to_reg, pc_absolute_jump_vec, load_byte, read_next_pc,
     write_mem, read_mem
 );
-assign inst_type i_t = i_type;
+inst_type i_t = i_type;
 fop_t alu_op;
 
 always_comb begin
@@ -71,8 +71,6 @@ always_comb begin
 
             alu_op = FOP_ADD;
         end
-
-
         endcase
     end
 
