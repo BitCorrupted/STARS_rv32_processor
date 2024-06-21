@@ -7,17 +7,20 @@ logic test_branch_decision = 0;
 logic [31:0] test_pc_write_value = 0;
 logic test_pc_immediate_jump = 0;
 logic test_in_en = 0;
-logic test_pc;
-logic test_pc_4;
+logic [31:0] test_pc;
+logic [31:0] test_pc_4;
 pc testpc(test_pc, test_pc_4, test_gen_i, test_branch_decision, test_pc_write_value, test_pc_immediate_jump, test_in_en, clock, reset);
+integer total_tests = 0;
+integer passed_tests = 0;
+
 
 initial begin
     // make sure to dump the signals so we can see them in the waveform
     $dumpfile("sim.vcd");
     $dumpvars(0, tb);
-    reset = 1;
-    #3;
-    reset = 0;
+
+    reset_module;
+    test_value(test_pc, 0, "PC reset value error");
 
     #3 $finish;
 
@@ -33,6 +36,14 @@ task pulse_clock;
         clock = 1;
     #3  clock = 0;
     #3;
+endtask
+
+task test_value(input int test_variable, test_value, string fail_message);
+    total_tests++;
+    if(test_variable == test_value)
+        passed_tests++;
+    else
+        $display(fail_message);
 endtask
 
 endmodule

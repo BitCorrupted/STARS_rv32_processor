@@ -3,3 +3,4 @@ build/
 *.fst
 verilog.log
 abc.history
+Makefile
