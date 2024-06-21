@@ -1,3 +1,43 @@
+`timescale 1ms/10ps
+module tb;
+logic clock = 0;
+logic reset = 1;
+logic [31:0] test_gen_i = 0;
+logic test_branch_decision = 0;
+logic [31:0] test_pc_write_value = 0;
+logic test_pc_immediate_jump = 0;
+logic test_in_en = 0;
+logic test_pc;
+logic test_pc_4;
+pc testpc(test_pc, test_pc_4, test_gen_i, test_branch_decision, test_pc_write_value, test_pc_immediate_jump, test_in_en, clock, reset);
+
+initial begin
+    // make sure to dump the signals so we can see them in the waveform
+    $dumpfile("sim.vcd");
+    $dumpvars(0, tb);
+
+    #3 $finish;
+
+
+
+
+    task reset_module;
+           reset = 0;
+        #3 reset = 1;
+        #3;
+    endtask
+
+    task pulse_clock;
+            clock = 1;
+        #3  clock = 0;
+        #3;
+    endtask
+
+    
+end
+
+endmodule
+
 module pc(
     output [31:0] pc_out,
     output [31:0] pc_add_4,
@@ -26,7 +66,7 @@ end
 
 always_ff @(posedge clock, negedge reset) begin
     if(~reset) begin
-        current_pc = 0; //placeholder constant
+        current_pc = 0;
     end
     else begin
         if(in_en)
