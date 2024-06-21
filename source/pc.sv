@@ -17,7 +17,7 @@ logic [31:0] pc_add_immediate;
 
 always_comb begin
     pc_4 = current_pc + 4;
-    pc_add_immediate = pc_immediate_jump ? pc_write_value : current_pc + generated_immediate;
+    pc_add_immediate = pc_immediate_jump ? pc_write_value + {generated_immediate[30:0],1'b0}: current_pc + {generated_immediate[30:0],1'b0};
 
     next_pc = branch_decision ? pc_add_immediate : pc_4;
 end
@@ -35,5 +35,6 @@ always_ff @(posedge clock, negedge reset) begin
     end
 
 end
+assign pc_out = current_pc;
 
 endmodule
