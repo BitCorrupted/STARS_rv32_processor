@@ -4,3 +4,4 @@ build/
 verilog.log
 abc.history
 Makefile
+tb.sv
