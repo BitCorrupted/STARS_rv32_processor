@@ -5,10 +5,10 @@ module writeback(
     input mem_to_reg,
     input load_byte,
     input read_pc_4,
-    output register_write
+    output register_value
 );
 
-logic [31:0] register_value;
+//logic [31:0] register_value;
 
 always_comb begin
     if(read_pc_4)
@@ -21,6 +21,6 @@ always_comb begin
         register_value = memory_value;
 end
 
-assign register_write = register_value;
+//assign register_write = register_value;
 
 endmodule

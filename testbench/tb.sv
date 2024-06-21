@@ -7,5 +7,7 @@ initial begin
     $dumpfile("sim.vcd");
     $dumpvars(0, tb);
 
+    #3 $finish;
+end
 
 endmodule
