@@ -7,8 +7,8 @@ module register_file(
 
 );
 
-logic [31:0] registers_state [31:0];
-logic [31:0] next_registers_state [31:0];
+logic [31:0][31:0] registers_state;
+logic [31:0][31:0] next_registers_state;
 
 always_comb begin
     next_registers_state = registers_state;
@@ -23,8 +23,11 @@ end
 
 always_ff @(posedge clk, negedge rst) begin
     if (!rst) begin
-        registers_state <= '{default:'0};
-        //registers_state <= '{'0};
+        //for (integer i = 0; i < 32; i++) begin
+        //    registers_state[i] <= 32'b0;
+        //end
+        //registers_state <= '{default:'0};
+        registers_state <= '0;
     end
 
     else begin
