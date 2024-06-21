@@ -22,6 +22,48 @@ initial begin
     reset_module;
     test_value(test_pc, 0, "PC reset value error");
 
+    test_in_en = 1;
+    test_gen_i = 32;
+    test_pc_write_value = 256;
+    pulse_clock;
+    test_value(test_pc, 4, "PC clock increment error");
+    pulse_clock;
+    test_value(test_pc, 8, "PC clock increment error");
+    test_branch_decision = 1;
+    pulse_clock;
+    test_value(test_pc, 72, "PC Branch Error");
+    pulse_clock;
+    test_value(test_pc, 136, "PC Branch Error");
+    test_gen_i = 32'hFFFFFFF0;
+    pulse_clock;
+    test_value(test_pc, 104, "PC Negative Branch Error");
+    test_pc_immediate_jump = 1;
+    pulse_clock;
+    test_value(test_pc, 224, "PC Absolute Branch Error");
+
+    test_branch_decision = 0;
+    test_pc_immediate_jump = 0;
+    test_in_en = 0;
+    test_gen_i = 32;
+    test_pc_write_value = 16;
+    pulse_clock;
+    test_value(test_pc, 224, "PC Write Disable Error");
+    pulse_clock;
+    test_value(test_pc, 224, "PC Write Disable Error");
+    test_branch_decision = 1;
+    pulse_clock;
+    test_value(test_pc, 224, "PC Write Disable Error");
+    pulse_clock;
+    test_value(test_pc, 224, "PC Write Disable Error");
+    test_gen_i = 32'hFFFFFFF0;
+    pulse_clock;
+    test_value(test_pc, 224, "PC Write Disable Error");
+    test_pc_immediate_jump = 1;
+    pulse_clock;
+    test_value(test_pc, 224, "PC Write Disable Error");
+
+
+    $display("Total Tests: %d Tests Passed: %d",total_tests, passed_tests);
     #3 $finish;
 
 end
@@ -67,7 +109,7 @@ logic [31:0] pc_add_immediate;
 
 always_comb begin
     pc_4 = current_pc + 4;
-    pc_add_immediate = pc_immediate_jump ? pc_write_value : current_pc + generated_immediate;
+    pc_add_immediate = pc_immediate_jump ? pc_write_value + {generated_immediate[30:0],1'b0}: current_pc + {generated_immediate[30:0],1'b0};
 
     next_pc = branch_decision ? pc_add_immediate : pc_4;
 end
@@ -85,5 +127,6 @@ always_ff @(posedge clock, negedge reset) begin
     end
 
 end
+assign pc_out = current_pc;
 
 endmodule

@@ -3,16 +3,37 @@ module tb;
 
 logic [3:0] a;
 logic [31:0] out;
+integer total_tests = 0;
+integer passed_tests = 0;
 
 writeback wb(32'hFFFFFFFF, 32'hEEEEEEEE, 32'hDDDDDDDD, a[0], a[1], a[2], out);
 initial begin
     // make sure to dump the signals so we can see them in the waveform
     $dumpfile("sim.vcd");
     $dumpvars(0, tb);
-    for(int i = 0; i < 8; i++)
-        #10 a = i;
+    for(int i = 0; i < 8; i++) begin
+        a = i[3:0];
+        #2;
+        if(a[2])
+            test_value(out, 32'hDDDDDDDD, "Improper PC+4 writeback");
+        else if(~a[0])
+            test_value(out, 32'hEEEEEEEE, "Improper ALU writeback");
+        else if(a[1])
+            test_value(out, 32'h000000FF, "Improper Byte writeback");
+        else
+            test_value(out, 32'hFFFFFFFF, "Improper Memory writeback");
+    end
+    $display("Total Tests: %d Tests Passed: %d",total_tests, passed_tests);
     #3 $finish;
 end
+
+task test_value(input int test_variable, test_value, string fail_message);
+    total_tests++;
+    if(test_variable == test_value)
+        passed_tests++;
+    else
+        $display(fail_message);
+endtask
 
 endmodule
 
@@ -23,10 +44,10 @@ module writeback(
     input mem_to_reg,
     input load_byte,
     input read_pc_4,
-    output [31:0] register_value
+    output [31:0] register_write
 );
 
-//logic [31:0] register_value;
+logic [31:0] register_value;
 
 always_comb begin
     if(read_pc_4)
@@ -38,7 +59,6 @@ always_comb begin
     else
         register_value = memory_value;
 end
-
-//assign register_write = register_value;
+assign register_write = register_value;
 
 endmodule
