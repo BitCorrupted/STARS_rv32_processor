@@ -15,26 +15,25 @@ initial begin
     // make sure to dump the signals so we can see them in the waveform
     $dumpfile("sim.vcd");
     $dumpvars(0, tb);
+    reset = 1;
+    #3;
+    reset = 0;
 
     #3 $finish;
 
-
-
-
-    task reset_module;
-           reset = 0;
-        #3 reset = 1;
-        #3;
-    endtask
-
-    task pulse_clock;
-            clock = 1;
-        #3  clock = 0;
-        #3;
-    endtask
-
-    
 end
+
+task reset_module;
+       reset = 0;
+    #3 reset = 1;
+    #3;
+endtask
+
+task pulse_clock;
+        clock = 1;
+    #3  clock = 0;
+    #3;
+endtask
 
 endmodule
 
@@ -46,27 +45,26 @@ module pc(
     input [31:0] pc_write_value,
     input logic pc_immediate_jump,
     input logic in_en,
-    logic clock,
-    logic reset
+    input logic clock,
+    input logic reset
 );
 
 reg [31:0] current_pc;
 logic [31:0] next_pc;
+logic [31:0] pc_4;
+logic [31:0] pc_add_immediate;
 
 always_comb begin
-    logic [31:0] pc_4;
-    logic [31:0] pc_add_immediate;
+    pc_4 = current_pc + 4;
+    pc_add_immediate = pc_immediate_jump ? pc_write_value : current_pc + generated_immediate;
 
-    assign pc_4 = current_pc + 4;
-    assign pc_add_4 = pc_4;
-    assign pc_add_immediate = pc_immediate_jump ? pc_write_value : current_pc + generated_immediate;
-
-    assign next_pc = branch_decision ? pc_add_immediate : pc_4;
+    next_pc = branch_decision ? pc_add_immediate : pc_4;
 end
+assign pc_add_4 = pc_4;
 
 always_ff @(posedge clock, negedge reset) begin
     if(~reset) begin
-        current_pc = 0;
+        current_pc = 0; //placeholder constant
     end
     else begin
         if(in_en)
