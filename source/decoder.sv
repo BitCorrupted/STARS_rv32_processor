@@ -3,7 +3,11 @@ module decoder (
     output logic [34:0] imm_gen,
     output logic [4:0] rs1, rs2, rd,
     output logic [2:0] type_out,
+<<<<<<< HEAD
     output logic [19:0] control_out
+=======
+    output logic [16:0] control_out
+>>>>>>> 017970681a8337b3a0c3e4bda1ba7ade7e58388c
 );
   typedef enum logic [2:0] {R = 0, I = 1, S = 2, SB = 3, UJ = 4, U = 5} inst_t;
   inst_t inst_type;

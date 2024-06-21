@@ -7,8 +7,8 @@ module register_file(
 
 );
 
-logic [31:0] registers_state [31:0]
-logic [31:0] next_registers_state [31:0]
+logic [31:0] registers_state [31:0];
+logic [31:0] next_registers_state [31:0];
 
 always_comb begin
     next_registers_state = registers_state;
