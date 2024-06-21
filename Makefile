@@ -9,11 +9,7 @@ PROJ    = template
 PINMAP  = pinmap.pcf
 CELLS	= support/cells_map_timing.v support/cells_sim_timing.v
 SRC     = source/top.sv
-<<<<<<< HEAD
 TB	    = testbench/decoder_tb.sv
-=======
-TB	    = testbench/branch_logic_tb.sv
->>>>>>> e4a2c9047842466a3a39ebe0d0ffada4d0d71af5
 ICE     = source/ice40hx8k.sv
 UART    = support/uart.v support/uart_tx.v support/uart_rx.v
 FILES   = $(ICE) $(SRC) $(UART)

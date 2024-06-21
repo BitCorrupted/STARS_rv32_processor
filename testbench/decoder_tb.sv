@@ -3,13 +3,13 @@
   inst_t inst_type;
 module tb;
 
-    logic [31:0] inst;
+    logic [31:0] inst1;
     logic [34:0] imm_gen;
-    logic [4:0] rs1, rs2, rd;
+    logic [4:0] rs1o, rs2o, rdo;
     logic [2:0] type_out;
     logic [16:0] control_out;
 
-    decoder dec1(.inst(inst), .imm_gen(imm_gen), .rs1(rs1), .rs2(rs2), .rd(rd), .type_out(type_out), .control_out(control_out));
+    decoder dec1(.inst(inst1), .imm_gen(imm_gen), .rs1(rs1o), .rs2(rs2o), .rd(rdo), .type_out(type_out), .control_out(control_out));
 
     task r_type;
     input logic [6:0] funct7;
@@ -19,7 +19,7 @@ module tb;
     input logic [6:0] opcode;
 
     begin
-        inst = {funct7, rs2, rs1, funct3, rd, opcode};
+        inst1 = {funct7, rs2, rs1, funct3, rd, opcode};
     end
     endtask
 
@@ -31,7 +31,7 @@ module tb;
     input logic [6:0] funct7;
 
     begin
-        inst = {imm, rs1, funct3, rd, funct7};
+        inst1 = {imm, rs1, funct3, rd, funct7};
     end
     endtask
 
@@ -43,7 +43,7 @@ module tb;
     input logic [6:0] opcode;
 
     begin
-        inst = {imm2, rs2, rs1, funct3, imm1, opcode};
+        inst1 = {imm2, rs2, rs1, funct3, imm1, opcode};
     end
     endtask
 
@@ -55,7 +55,7 @@ module tb;
     input logic [6:0] opcode;
 
     begin
-        inst = {imm2, rs2, rs1, funct3, imm1, opcode};
+        inst1 = {imm2, rs2, rs1, funct3, imm1, opcode};
     end
     endtask
 
@@ -65,7 +65,7 @@ module tb;
     input logic [6:0] opcode;
 
     begin
-        inst = {imm, rd, opcode};
+        inst1 = {imm, rd, opcode};
     end
     endtask
 
@@ -75,7 +75,7 @@ module tb;
     input logic [6:0] opcode;
 
     begin
-        inst = {imm, rd, opcode};
+        inst1 = {imm, rd, opcode};
     end
     endtask
 
@@ -84,7 +84,6 @@ initial begin
     // make sure to dump the signals so we can see them in the waveform
     $dumpfile("sim.vcd");
     $dumpvars(0, tb);
-    inst = 32'b0;
     #10
     for (int i = 0; i < 31; i++) begin
         #10;
@@ -94,7 +93,7 @@ initial begin
 
     for (int i = 0; i < 31; i++) begin
         #10;
-        i_type(11'b0, i, 3'b0, i, 7'b0000011);
+        i_type(12'b0, 5'b00001, 3'b0, 5'b00001, 7'b0000011);
         #10;
     end
 
@@ -146,6 +145,7 @@ always_comb begin
 
     if ((opcode == 7'b0000011) || (opcode == 7'b0010011) || (opcode == 7'b0011011)) begin
         inst_type = I;
+        type_out = 3'b1;
     end
     if (opcode == 7'b0110011 || opcode == 7'b0111011) begin
         inst_type = R;
