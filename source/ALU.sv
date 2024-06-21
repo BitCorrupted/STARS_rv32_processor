@@ -40,10 +40,11 @@ output logic Z, N
             FOP_OR : result = rda | rdb;
             FOP_XOR : result = rda ^ rdb;
             FOP_IMM : result = rdb;
+            default : result = '0;
         endcase
     end
 
     assign Z = (result == 0) ? 1'b1 : 1'b0;
-    assign N = (result < 0) ? 1'b1 : 1'b0;
+    assign N = result[31];
 
 endmodule
