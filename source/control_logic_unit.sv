@@ -35,6 +35,7 @@ always_comb begin
         load_byte = 1'b0;
         pc_absolute_jump_vec = 1'b0;
         read_next_pc = 1'b0;
+    end
 
         case (instruction)
         // R-type
@@ -118,31 +119,5 @@ always_comb begin
         endcase
 
     end
-
-    else begin
-
-        case (instruction)
-        17'b0000000000001001: begin 
-            branch_type = 3'b0;
-            read_mem = 1'b0;
-            mem_to_reg = 1'b0;
-            write_mem = 1'b0;
-            alu_mux_en = 1'b1;
-            store_byte = 1'b0;
-            load_byte = 1'b0;
-            pc_absolute_jump_vec = 1'b0;
-            read_next_pc = 1'b0;
-
-            alu_op = FOP_ADD;
-        end
-        endcase
-    end
-
-
-end
-
-
-
-
 
 endmodule

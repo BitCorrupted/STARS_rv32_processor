@@ -111,15 +111,15 @@ initial begin
 
     for (int i = 0; i < 31; i++) begin
         #10;
-        u_type(20'b0, i, 7'b0110111);
-        #10;
-    end 
-
-    for (int i = 0; i < 31; i++) begin
-        #10;
         uj_type(20'b0, i, 7'b1101111);
         #10;
     end
+    
+    for (int i = 0; i < 31; i++) begin
+        #10;
+        u_type(20'b0, i, 7'b0110111);
+        #10;
+    end 
 
     #10 $finish;
 end
