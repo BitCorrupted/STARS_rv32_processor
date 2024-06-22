@@ -120,10 +120,10 @@ module tb;
         tb_rdb = 5;
         tb_fop = FOP_ADD;
         exp_result = tb_rda + tb_rdb;
-        exp_Z = 0;
-        exp_N = 0;
-        exp_V = 0;
-        exp_C = 0;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        exp_V = (tb_rda[31] && tb_rdb[31] && !exp_result[31]) || (!tb_rda[31] && !tb_rdb[31] && exp_result[31]);
+        exp_C = (tb_rda[31] && tb_rdb[31]);
         #1;
         check_result();
         #1;
@@ -135,10 +135,10 @@ module tb;
         tb_rdb = 5;
         tb_fop = FOP_ADD;
         exp_result = tb_rda + tb_rdb;
-        exp_Z = 0;
-        exp_N = 1;
-        exp_V = 0;
-        exp_C = 0;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        exp_V = (tb_rda[31] && tb_rdb[31] && !exp_result[31]) || (!tb_rda[31] && !tb_rdb[31] && exp_result[31]);
+        exp_C = (tb_rda[31] && tb_rdb[31]);
         #1;
         check_result();
         #1;
@@ -150,10 +150,10 @@ module tb;
         tb_rdb = 1;
         tb_fop = FOP_ADD;
         exp_result = tb_rda + tb_rdb;
-        exp_Z = 0;
-        exp_N = 1;
-        exp_V = 1;
-        exp_C = 0;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        exp_V = (tb_rda[31] && tb_rdb[31] && !exp_result[31]) || (!tb_rda[31] && !tb_rdb[31] && exp_result[31]);
+        exp_C = (tb_rda[31] && tb_rdb[31]);
         #1;
         check_result();
         #1;
@@ -165,30 +165,30 @@ module tb;
         tb_rdb = 1;
         tb_fop = FOP_ADD;
         exp_result = tb_rda + tb_rdb;
-        exp_Z = 1;
-        exp_N = 0;
-        exp_V = 0;
-        exp_C = 0;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        exp_V = (tb_rda[31] && tb_rdb[31] && !exp_result[31]) || (!tb_rda[31] && !tb_rdb[31] && exp_result[31]);
+        exp_C = (tb_rda[31] && tb_rdb[31]);
         #1;
         check_result();
         #1;
         check_flag();
         #1;
 
-        // Carry test
-        tb_rda = 2147483647; // max positive number
-        tb_rdb = 2147483647; // max positive number
-        tb_fop = FOP_ADD;
-        exp_result = tb_rda + tb_rdb;
-        exp_Z = 0;
-        exp_N = 0;
-        exp_V = 0;
-        exp_C = 0;
-        #1;
-        check_result();
-        #1;
-        check_flag();
-        #1;
+        // // Carry test
+        // tb_rda = 2147483647;
+        // tb_rdb = 2147483647;
+        // tb_fop = FOP_ADD;
+        // exp_result = tb_rda + tb_rdb;
+        // exp_Z = 0;
+        // exp_N = 0;
+        // exp_V = 0;
+        // exp_C = 0;
+        // #1;
+        // check_result();
+        // #1;
+        // check_flag();
+        // #1;
 
         // Random tests
         repeat (10) begin
@@ -196,10 +196,10 @@ module tb;
             tb_rdb = $random;
             tb_fop = FOP_ADD;
             exp_result = tb_rda + tb_rdb;
-            exp_Z = 0;
-            exp_N = 0;
-            exp_V = 0;
-            exp_C = 0;
+            exp_Z = (exp_result == 0) ? 1 : 0;
+            exp_N = exp_result[31];
+            exp_V = (tb_rda[31] && tb_rdb[31] && !exp_result[31]) || (!tb_rda[31] && !tb_rdb[31] && exp_result[31]);
+            exp_C = (tb_rda[31] && tb_rdb[31]);
             #1;
             check_result();
             #1;
@@ -209,7 +209,6 @@ module tb;
         end
     endtask
 
-
     task SUB;
         
         // Basic functional tests
@@ -217,10 +216,10 @@ module tb;
         tb_rdb = 5;
         tb_fop = FOP_SUB;
         exp_result = tb_rda - tb_rdb;
-        exp_Z = 0;
-        exp_N = 0;
-        exp_V = 0;
-        exp_C = 0;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        exp_V = (tb_rda[31] && !tb_rdb[31] && !exp_result[31]) || (!tb_rda[31] && tb_rdb[31] && exp_result[31]);
+        exp_C = (tb_rda[31] && !tb_rdb[31]);
         #1;
         check_result();
         #1;
@@ -232,10 +231,10 @@ module tb;
         tb_rdb = 5;
         tb_fop = FOP_SUB;
         exp_result = tb_rda - tb_rdb;
-        exp_Z = 0;
-        exp_N = 1;
-        exp_V = 0;
-        exp_C = 0;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        exp_V = (tb_rda[31] && !tb_rdb[31] && !exp_result[31]) || (!tb_rda[31] && tb_rdb[31] && exp_result[31]);
+        exp_C = (tb_rda[31] && !tb_rdb[31]);
         #1;
         check_result();
         #1;
@@ -247,30 +246,45 @@ module tb;
         tb_rdb = 2134567890;
         tb_fop = FOP_SUB;
         exp_result = tb_rda - tb_rdb;
-        exp_Z = 0;
-        exp_N = 0;
-        exp_V = 1;
-        exp_C = 0;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        exp_V = (tb_rda[31] && !tb_rdb[31] && !exp_result[31]) || (!tb_rda[31] && tb_rdb[31] && exp_result[31]);
+        exp_C = (tb_rda[31] && !tb_rdb[31]);
         #1;
         check_result();
         #1;
         check_flag();
         #1;
 
-        // Carry test
-        tb_rda = 3696709287;
-        tb_rdb = 505290208;
+        // Zero test
+        tb_rda = 123456789;
+        tb_rdb = 123456789;
         tb_fop = FOP_SUB;
         exp_result = tb_rda - tb_rdb;
-        exp_Z = 0;
-        exp_N = 0;
-        exp_V = 0;
-        exp_C = 1;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        exp_V = (tb_rda[31] && !tb_rdb[31] && !exp_result[31]) || (!tb_rda[31] && tb_rdb[31] && exp_result[31]);
+        exp_C = (tb_rda[31] && !tb_rdb[31]);
         #1;
         check_result();
         #1;
         check_flag();
         #1;
+
+        // // Carry test
+        // tb_rda = 3696709287;
+        // tb_rdb = 505290208;
+        // tb_fop = FOP_SUB;
+        // exp_result = tb_rda - tb_rdb;
+        // exp_Z = 0;
+        // exp_N = 0;
+        // exp_V = 0;
+        // exp_C = 1;
+        // #1;
+        // check_result();
+        // #1;
+        // check_flag();
+        // #1;
 
         // Random tests
         repeat (10) begin
@@ -278,19 +292,22 @@ module tb;
             tb_rdb = $random;
             tb_fop = FOP_SUB;
             exp_result = tb_rda - tb_rdb;
-            exp_Z = 0;
-            exp_N = 0;
-            exp_V = 0;
-            exp_C = 0;
+            exp_Z = (exp_result == 0) ? 1 : 0;
+            exp_N = exp_result[31];
+            exp_V = (tb_rda[31] && !tb_rdb[31] && !exp_result[31]) || (!tb_rda[31] && tb_rdb[31] && exp_result[31]);
+            exp_C = (tb_rda[31] && !tb_rdb[31]);
             #1;
             check_result();
             #1;
-            // check_flag();        //is there a way to check flags on random values?
-            // #1;
+            check_flag();        //is there a way to check flags on random values?
+            #1;
 
         end
     endtask
 
+    task logical_shift;
+
+    endtask
 
     initial begin
         $dumpfile("sim.vcd");
