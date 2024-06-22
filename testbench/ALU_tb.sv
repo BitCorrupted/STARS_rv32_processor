@@ -375,22 +375,164 @@ module tb;
         end
     endtask
 
+    task SHIFT_RIGHT_LOGICAL;
+        
+        // Basic functional test
+        tb_rda = 32'h0000_0010;
+        tb_rdb = 1;
+        tb_fop = FOP_SRL;
+        exp_result = tb_rda >> tb_rdb;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Shift right by 0
+        tb_rda = 32'h8000_0000; // Large negative number
+        tb_rdb = 0;
+        tb_fop = FOP_SRL;
+        exp_result = tb_rda >> tb_rdb;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Edge case: Shift right by 31
+        tb_rda = 32'h0000_0001; // 1
+        tb_rdb = 31;            // Shift right by 31
+        tb_fop = FOP_SRL;
+        exp_result = tb_rda >> tb_rdb;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Shift resulting in zero
+        tb_rda = 32'h8000_0000; // Large negative number
+        tb_rdb = 32;            // Shift right by 32
+        tb_fop = FOP_SRL;
+        exp_result = 0;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Random tests
+        repeat (10) begin
+            tb_rda = $random;
+            tb_rdb = $random % 32; // Limiting shift amount to 31
+            tb_fop = FOP_SRL;
+            exp_result = tb_rda >> tb_rdb;
+            exp_Z = (exp_result == 0) ? 1 : 0;
+            exp_N = exp_result[31];
+            #1;
+            check_result();
+            #1;
+            check_flag();
+            #1;
+        end
+    endtask
+
+    task SHIFT_RIGHT_ARITHMETIC;
+    
+    // Basic functional test
+    tb_rda = 32'h0000_0010;
+    tb_rdb = 1;
+    tb_fop = FOP_SRA;
+    exp_result = tb_rda >>> tb_rdb;
+    exp_Z = 0;
+    exp_N = 0;
+    #1;
+    check_result();
+    #1;
+    check_flag();
+    #1;
+
+    // Shift right by 0
+    tb_rda = 32'h8000_0000; // Large negative number
+    tb_rdb = 0;
+    tb_fop = FOP_SRA;
+    exp_result = 32'h8000_0000;
+    exp_Z = 0;
+    exp_N = 1;
+    #1;
+    check_result();
+    #1;
+    check_flag();
+    #1;
+
+    // Edge case: Shift right by 31
+    tb_rda = 32'h0000_0001; // 1
+    tb_rdb = 31;            // Shift right by 31
+    tb_fop = FOP_SRA;
+    exp_result = 0;
+    exp_Z = 1;
+    exp_N = 0;
+    #1;
+    check_result();
+    #1;
+    check_flag();
+    #1;
+
+    // Shift resulting in negative number
+    tb_rda = 32'h8000_0000; // Large negative number
+    tb_rdb = 32;            // Shift right by 32
+    tb_fop = FOP_SRA;
+    exp_result = 0;
+    exp_Z = 0;
+    exp_N = 1;
+    #1;
+    check_result();
+    #1;
+    check_flag();
+    #1;
+
+    // Random tests
+    repeat (10) begin
+        tb_rda = $random;
+        tb_rdb = $random % 32; // Limiting shift amount to 31
+        tb_fop = FOP_SRA;
+        exp_result = tb_rda >>> tb_rdb;
+        exp_Z = (exp_result == 0) ? 1 : 0;
+        exp_N = exp_result[31];
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+    end
+    endtask
+
     initial begin
         $dumpfile("sim.vcd");
         $dumpvars(0, tb);
 
         ADD;
         #1;
-        //0-33 ms
+        
         SUB;
         #1;
-        //33-86 ms
+        
         SHIFT_LEFT_LOGICAL;
         #1;
-        //86-128 ms
+        
         SHIFT_RIGHT_LOGICAL;
         #1;
-        //128-
+        
+        SHIFT_RIGHT_ARITHMETIC;
+        #1;
 
         $finish;
     end
