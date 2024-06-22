@@ -93,7 +93,7 @@ initial begin
 
     for (int i = 0; i < 31; i++) begin
         #10;
-        i_type(12'b0, 5'b00001, 3'b0, 5'b00001, 7'b0000011);
+        i_type(12'b0, i, 3'b0, i, 7'b0000011);
         #10;
     end
 
@@ -137,12 +137,12 @@ module decoder (
 );
   typedef enum logic [2:0] {R = 0, I = 1, S = 2, SB = 3, UJ = 4, U = 5} inst_t;
   inst_t inst_type;
-  logic [6:0] opcode = inst[6:0];
+  logic [6:0] opcode;
   logic [2:0] funct3;
   logic [6:0] funct7;
 
 always_comb begin
-
+    opcode = inst[6:0];
     case (opcode)
         7'b0000011, 7'b0010011, 7'b0011011: inst_type = I;
         7'b0110011, 7'b0111011: inst_type = R;

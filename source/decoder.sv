@@ -7,33 +7,21 @@ module decoder (
 );
   typedef enum logic [2:0] {R = 0, I = 1, S = 2, SB = 3, UJ = 4, U = 5} inst_t;
   inst_t inst_type;
-  logic [6:0] opcode = inst[6:0];
+  logic [6:0] opcode;
   logic [2:0] funct3;
   logic [6:0] funct7;
 
 always_comb begin
-
-    if ((opcode == 7'b0000011) || (opcode == 7'b0010011) || (opcode == 7'b0011011)) begin
-        inst_type = I;
-    end
-    if (opcode == 7'b0110011 || opcode == 7'b0111011) begin
-        inst_type = R;
-    end
-    if (opcode == 7'b0100011) begin
-        inst_type = S;
-    end
-    if (opcode == 7'b1100011) begin
-        inst_type = SB;
-    end
-    if (opcode == 7'b1101111) begin
-        inst_type = UJ;
-    end
-    if (opcode == 7'b0110111) begin
-        inst_type = U;
-    end
-    else begin
-        inst_type = R;
-    end
+    opcode = inst[6:0];
+    case (opcode)
+        7'b0000011, 7'b0010011, 7'b0011011: inst_type = I;
+        7'b0110011, 7'b0111011: inst_type = R;
+        7'b0100011: inst_type = S;
+        7'b1100011: inst_type = SB;
+        7'b1101111: inst_type = UJ;
+        7'b0110111: inst_type = U;
+        default: inst_type = R;
+    endcase
     type_out = inst_type;
 end
 
@@ -46,10 +34,10 @@ always_comb begin
         U: begin funct7 = inst[31:25]; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = inst[24:20]; rd = inst[11:7]; end    
         UJ: begin funct7 = inst[31:25]; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = inst[24:20]; rd = inst[11:7]; end    
 
-        default: begin funct7 = 7'b0; funct3 = 3'b0; rs1 = 5'b0; rs2 = 5'b0; rd = inst[11:7]; end
+        default: begin funct7 = 7'b0; funct3 = 3'b0; rs1 = 5'b0; rs2 = 5'b0; rd = 5'b0; end
 
     endcase 
-    control_out = {opcode, funct3, funct7};
+    control_out = {inst[6:0], funct3, funct7};
     end
     
 endmodule
