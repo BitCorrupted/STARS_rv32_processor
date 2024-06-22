@@ -143,28 +143,15 @@ module decoder (
 
 always_comb begin
 
-    if ((opcode == 7'b0000011) || (opcode == 7'b0010011) || (opcode == 7'b0011011)) begin
-        inst_type = I;
-        type_out = 3'b1;
-    end
-    if (opcode == 7'b0110011 || opcode == 7'b0111011) begin
-        inst_type = R;
-    end
-    if (opcode == 7'b0100011) begin
-        inst_type = S;
-    end
-    if (opcode == 7'b1100011) begin
-        inst_type = SB;
-    end
-    if (opcode == 7'b1101111) begin
-        inst_type = UJ;
-    end
-    if (opcode == 7'b0110111) begin
-        inst_type = U;
-    end
-    else begin
-        inst_type = R;
-    end
+    case (opcode)
+        7'b0000011, 7'b0010011, 7'b0011011: inst_type = I;
+        7'b0110011, 7'b0111011: inst_type = R;
+        7'b0100011: inst_type = S;
+        7'b1100011: inst_type = SB;
+        7'b1101111: inst_type = UJ;
+        7'b0110111: inst_type = U;
+        default: inst_type = R;
+    endcase
     type_out = inst_type;
 end
 
