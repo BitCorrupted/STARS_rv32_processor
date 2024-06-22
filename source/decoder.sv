@@ -37,7 +37,7 @@ always_comb begin
         default: begin funct7 = 7'b0; funct3 = 3'b0; rs1 = 5'b0; rs2 = 5'b0; rd = 5'b0; end
 
     endcase 
-    control_out = {inst[6:0], funct3, funct7};
+    control_out = {funct7, funct3, inst[6:0]};
     end
     
 endmodule
