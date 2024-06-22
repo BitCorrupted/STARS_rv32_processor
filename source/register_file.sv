@@ -15,7 +15,7 @@ always_comb begin
     regA_data = next_registers_state[regA_address];
     regB_data = next_registers_state[regB_address];
 
-    if (register_write_en) begin
+    if (register_write_en && rd_address != 5'b0) begin
         next_registers_state[rd_address] = register_write_data;
     end
 end
