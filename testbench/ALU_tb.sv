@@ -129,7 +129,8 @@ module tb;
         #1;
         check_flag();
         #1;
-
+    
+        // Negative test
         tb_rda = -10;
         tb_rdb = 5;
         tb_fop = FOP_ADD;
@@ -145,7 +146,7 @@ module tb;
         #1;
 
         // Overflow test
-        tb_rda = 2147483647; // INT_MAX
+        tb_rda = 2147483647; // max positive number
         tb_rdb = 1;
         tb_fop = FOP_ADD;
         exp_result = tb_rda + tb_rdb;
@@ -159,12 +160,27 @@ module tb;
         check_flag();
         #1;
 
-        // Carry test
-        tb_rda = 4294967295; // UINT_MAX
+        // Zero test
+        tb_rda = 4294967295; // max number 
         tb_rdb = 1;
         tb_fop = FOP_ADD;
         exp_result = tb_rda + tb_rdb;
         exp_Z = 1;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Carry test
+        tb_rda = 2147483647; // max positive number
+        tb_rdb = 2147483647; // max positive number
+        tb_fop = FOP_ADD;
+        exp_result = tb_rda + tb_rdb;
+        exp_Z = 0;
         exp_N = 0;
         exp_V = 0;
         exp_C = 0;
@@ -194,12 +210,98 @@ module tb;
     endtask
 
 
+    task SUB;
+        
+        // Basic functional tests
+        tb_rda = 10;
+        tb_rdb = 5;
+        tb_fop = FOP_SUB;
+        exp_result = tb_rda - tb_rdb;
+        exp_Z = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Negative test
+        tb_rda = -10;
+        tb_rdb = 5;
+        tb_fop = FOP_SUB;
+        exp_result = tb_rda - tb_rdb;
+        exp_Z = 0;
+        exp_N = 1;
+        exp_V = 0;
+        exp_C = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Overflow test
+        tb_rda = -1234567890;
+        tb_rdb = 2134567890;
+        tb_fop = FOP_SUB;
+        exp_result = tb_rda - tb_rdb;
+        exp_Z = 0;
+        exp_N = 0;
+        exp_V = 1;
+        exp_C = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Carry test
+        tb_rda = 3696709287;
+        tb_rdb = 505290208;
+        tb_fop = FOP_SUB;
+        exp_result = tb_rda - tb_rdb;
+        exp_Z = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_C = 1;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Random tests
+        repeat (10) begin
+            tb_rda = $random;
+            tb_rdb = $random;
+            tb_fop = FOP_SUB;
+            exp_result = tb_rda - tb_rdb;
+            exp_Z = 0;
+            exp_N = 0;
+            exp_V = 0;
+            exp_C = 0;
+            #1;
+            check_result();
+            #1;
+            // check_flag();        //is there a way to check flags on random values?
+            // #1;
+
+        end
+    endtask
+
+
     initial begin
         $dumpfile("sim.vcd");
         $dumpvars(0, tb);
 
         ADD;
         #1;
+        //0-33 ms
+        SUB;
+        #1;
+        //33-66 ms
 
         $finish;
     end
