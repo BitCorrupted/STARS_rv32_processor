@@ -312,8 +312,8 @@ module tb;
         tb_rdb = 1;
         tb_fop = FOP_SLL;
         exp_result = tb_rda << tb_rdb;
-        exp_Z = (exp_result == 0) ? 1 : 0;
-        exp_N = exp_result[31];
+        exp_Z = 0;
+        exp_N = 0;
         #1;
         check_result();
         #1;
@@ -325,8 +325,8 @@ module tb;
         tb_rdb = 0;
         tb_fop = FOP_SLL;
         exp_result = tb_rda << tb_rdb;
-        exp_Z = (exp_result == 0) ? 1 : 0;
-        exp_N = exp_result[31];
+        exp_Z = 0;
+        exp_N = 1;
         #1;
         check_result();
         #1;
@@ -338,8 +338,8 @@ module tb;
         tb_rdb = 31;            // Shift left by 31
         tb_fop = FOP_SLL;
         exp_result = tb_rda << tb_rdb;
-        exp_Z = (exp_result == 0) ? 1 : 0;
-        exp_N = exp_result[31];
+        exp_Z = 0;
+        exp_N = 1;
         #1;
         check_result();
         #1;
@@ -351,8 +351,8 @@ module tb;
         tb_rdb = 32;            // Shift left by 32
         tb_fop = FOP_SLL;
         exp_result = 0;
-        exp_Z = (exp_result == 0) ? 1 : 0;
-        exp_N = exp_result[31];
+        exp_Z = 1;
+        exp_N = 0;
         #1;
         check_result();
         #1;
@@ -382,8 +382,8 @@ module tb;
         tb_rdb = 1;
         tb_fop = FOP_SRL;
         exp_result = tb_rda >> tb_rdb;
-        exp_Z = (exp_result == 0) ? 1 : 0;
-        exp_N = exp_result[31];
+        exp_Z = 0;
+        exp_N = 0;
         #1;
         check_result();
         #1;
@@ -395,8 +395,8 @@ module tb;
         tb_rdb = 0;
         tb_fop = FOP_SRL;
         exp_result = tb_rda >> tb_rdb;
-        exp_Z = (exp_result == 0) ? 1 : 0;
-        exp_N = exp_result[31];
+        exp_Z = 0;
+        exp_N = 1;
         #1;
         check_result();
         #1;
@@ -408,8 +408,8 @@ module tb;
         tb_rdb = 31;            // Shift right by 31
         tb_fop = FOP_SRL;
         exp_result = tb_rda >> tb_rdb;
-        exp_Z = (exp_result == 0) ? 1 : 0;
-        exp_N = exp_result[31];
+        exp_Z = 1;
+        exp_N = 0;
         #1;
         check_result();
         #1;
@@ -421,8 +421,8 @@ module tb;
         tb_rdb = 32;            // Shift right by 32
         tb_fop = FOP_SRL;
         exp_result = 0;
-        exp_Z = (exp_result == 0) ? 1 : 0;
-        exp_N = exp_result[31];
+        exp_Z = 1;
+        exp_N = 0;
         #1;
         check_result();
         #1;
@@ -445,74 +445,74 @@ module tb;
         end
     endtask
 
-    task SHIFT_RIGHT_ARITHMETIC;
+    task SHIFT_RIGHT_ARITHMETIC; //needs fixing, >>> is not the correct syntax for shift right arithmetic
     
-    // Basic functional test
-    tb_rda = 32'h0000_0010;
-    tb_rdb = 1;
-    tb_fop = FOP_SRA;
-    exp_result = tb_rda >>> tb_rdb;
-    exp_Z = 0;
-    exp_N = 0;
-    #1;
-    check_result();
-    #1;
-    check_flag();
-    #1;
-
-    // Shift right by 0
-    tb_rda = 32'h8000_0000; // Large negative number
-    tb_rdb = 0;
-    tb_fop = FOP_SRA;
-    exp_result = 32'h8000_0000;
-    exp_Z = 0;
-    exp_N = 1;
-    #1;
-    check_result();
-    #1;
-    check_flag();
-    #1;
-
-    // Edge case: Shift right by 31
-    tb_rda = 32'h0000_0001; // 1
-    tb_rdb = 31;            // Shift right by 31
-    tb_fop = FOP_SRA;
-    exp_result = 0;
-    exp_Z = 1;
-    exp_N = 0;
-    #1;
-    check_result();
-    #1;
-    check_flag();
-    #1;
-
-    // Shift resulting in negative number
-    tb_rda = 32'h8000_0000; // Large negative number
-    tb_rdb = 32;            // Shift right by 32
-    tb_fop = FOP_SRA;
-    exp_result = 0;
-    exp_Z = 0;
-    exp_N = 1;
-    #1;
-    check_result();
-    #1;
-    check_flag();
-    #1;
-
-    // Random tests
-    repeat (10) begin
-        tb_rda = $random;
-        tb_rdb = $random % 32; // Limiting shift amount to 31
+        // Basic functional test
+        tb_rda = 32'h0000_0010;
+        tb_rdb = 1;
         tb_fop = FOP_SRA;
         exp_result = tb_rda >>> tb_rdb;
-        exp_Z = (exp_result == 0) ? 1 : 0;
-        exp_N = exp_result[31];
+        exp_Z = 0;
+        exp_N = 0;
         #1;
         check_result();
         #1;
         check_flag();
         #1;
-    end
+
+        // Shift right by 0
+        tb_rda = 32'h8000_0000; // Large negative number
+        tb_rdb = 0;
+        tb_fop = FOP_SRA;
+        exp_result = 32'h8000_0000;
+        exp_Z = 0;
+        exp_N = 1;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Edge case: Shift right by 31
+        tb_rda = 32'h0000_0001; // 1
+        tb_rdb = 31;            // Shift right by 31
+        tb_fop = FOP_SRA;
+        exp_result = 0;
+        exp_Z = 1;
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Shift resulting in negative number
+        tb_rda = 32'h8000_0000; // Large negative number
+        tb_rdb = 32;            // Shift right by 32
+        tb_fop = FOP_SRA;
+        exp_result = 0;
+        exp_Z = 0;
+        exp_N = 1;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Random tests
+        repeat (10) begin
+            tb_rda = $random;
+            tb_rdb = $random % 32; // Limiting shift amount to 31
+            tb_fop = FOP_SRA;
+            exp_result = tb_rda >>> tb_rdb;
+            exp_Z = (exp_result == 0) ? 1 : 0;
+            exp_N = exp_result[31];
+            #1;
+            check_result();
+            #1;
+            check_flag();
+            #1;
+        end
     endtask
 
     initial begin
