@@ -33,16 +33,18 @@ always begin
 end
 
 task check_outputs;
-        input logic exp_register_valA, exp_register_valB;  
+        input logic [31:0] exp_register_valA, exp_register_valB;  
         input string check_num;
+
     begin
+        $display("exp val = %d", exp_register_valA);
         if (exp_register_valA == regA_data) begin
             $info("Correct regA output. test: %s", check_num);  
 
         end
 
         else begin
-            $error("Incorrect regA output. Actual: %0d, Expected: %0d. test: %s", regA_data, exp_register_valA, check_num);
+            $error("Incorrect regA output. Actual: %0d, Expected: %0d. address %d test: %s", regA_data, exp_register_valA, regA_address, check_num);
         end
 
         if (exp_register_valB == regB_data) begin
@@ -51,7 +53,7 @@ task check_outputs;
         end
 
         else begin
-            $error("Incorrect regB output. Actual: %0d, Expected: %0d. test: %s", regB_data, exp_register_valB, check_num);
+            $error("Incorrect regB output. Actual: %0d, Expected: %0d. address %d test: %s", regB_data, exp_register_valB, regB_address, check_num);
         end
     end
     endtask 
@@ -94,14 +96,72 @@ initial begin
     end
     #3;
     register_write_en = 1'b0;
-    for (integer i = 0; i < 32; i++) begin
+    regA_address = 5'b0;
+    regB_address = 5'b0;
+    exp_register_valA = 32'd0;
+    exp_register_valB = 32'd0;
+    #3
+    check_outputs(exp_register_valA, exp_register_valB, tb_test_name);
+    #6
+
+
+    for (integer i = 1; i < 32; i++) begin
         regA_address = i;
         regB_address = i;
         exp_register_valA = 32'd25;
         exp_register_valB = 32'd25;
+        //$display("%d", exp_register_valA);
+        #3
         check_outputs(exp_register_valA, exp_register_valB, tb_test_name);
         #6;
     end
+
+    //Test 2 Test reset.
+    tb_test_name = "test reset";
+
+    reset_module;
+
+    #3;
+    for (integer i = 0; i < 32; i++) begin
+        regA_address = i;
+        regB_address = i;
+        exp_register_valA = 32'b0;
+        exp_register_valB = 32'b0;
+        #3
+        check_outputs(exp_register_valA, exp_register_valB, tb_test_name);
+        #6;
+    end
+
+    //Test 3: write data when write not enabled
+
+    tb_test_name = "write when write not enabled";
+
+    register_write_data = 32'd19;
+
+    register_write_en = 1'b0;
+    #3;
+
+    for (integer i = 0; i < 32; i++) begin
+        rd_address = i;
+
+        //check_outputs(exp_register_valA, exp_register_valB, tb_test_name);
+        #6;
+    end
+    #3;
+
+    for (integer i = 0; i < 32; i++) begin
+        regA_address = i;
+        regB_address = i;
+        exp_register_valA = 32'b0;
+        exp_register_valB = 32'b0;
+        #3
+        check_outputs(exp_register_valA, exp_register_valB, tb_test_name);
+        #6;
+    end
+
+
+
+
 
     
 
@@ -129,7 +189,7 @@ always_comb begin
     regA_data = next_registers_state[regA_address];
     regB_data = next_registers_state[regB_address];
 
-    if (register_write_en) begin
+    if (register_write_en && rd_address != 5'b0) begin
         next_registers_state[rd_address] = register_write_data;
     end
 end
