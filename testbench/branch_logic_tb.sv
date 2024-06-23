@@ -3,13 +3,13 @@ typedef enum logic [2:0] {BEQ = 1, BNE = 2, BLT = 3, BGE = 4, BLTU = 5, BGEU = 6
 module tb;
 
 logic [2:0] branch_type;
-logic ALU_neg_flag, ALU_zero_flag, b_out;
+logic ALU_neg_flag, ALU_zero_flag, ALU_overflow_flag, b_out;
 
 string tb_test_name;
 integer exp_branch;
 
 branch_logic b(.branch_type(branch_type), .ALU_neg_flag(ALU_neg_flag), 
-.ALU_zero_flag(ALU_zero_flag), .b_out(b_out));
+.ALU_zero_flag(ALU_zero_flag), .b_out(b_out), .ALU_overflow_flag(ALU_overflow_flag));
 
 task check_outputs;
         input logic exp_branch;  
@@ -31,7 +31,9 @@ initial begin
     $dumpfile("sim.vcd");
     $dumpvars(0, tb);
     //Test 1 beq
+    ALU_overflow_flag = 0;
     tb_test_name = "beq branch";
+    ALU_overflow_flag = 0;
 
     ALU_neg_flag = 0;
     ALU_zero_flag = 1;
@@ -186,7 +188,19 @@ initial begin
 
     #4
 
+    //Test 13 overflow
+    tb_test_name = "overflow test";
 
+    ALU_overflow_flag = 1
+    ALU_neg_flag = 1;
+    ALU_zero_flag = 0;
+    branch_type = 3'd1;
+
+    exp_branch = 0;
+    #1
+    check_outputs(exp_branch, tb_test_name);
+
+    #4
 
 
 
