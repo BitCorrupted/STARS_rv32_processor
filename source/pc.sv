@@ -25,7 +25,7 @@ assign pc_add_4 = pc_4;
 
 always_ff @(posedge clock, negedge reset) begin
     if(~reset) begin
-        current_pc = 0; //placeholder constant
+        current_pc = 0; //placeholder constant for initialization
     end
     else begin
         if(in_en)
