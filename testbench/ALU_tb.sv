@@ -515,6 +515,76 @@ module tb;
         end
     endtask
 
+    task AND;
+
+        // Basic low signal test #1
+        tb_rda = 32'h0234_5678;
+        tb_rdb = 1;
+        tb_fop = FOP_AND;
+        exp_result = 0;
+        exp_Z = 1; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Basic low signal test #2
+        tb_rda = 1;
+        tb_rdb = 32'h0234_5678;
+        tb_fop = FOP_AND;
+        exp_result = 0;
+        exp_Z = 1; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Basic high signal test #1
+        tb_rda = 32'h0234_5678;
+        tb_rdb = 32'h0234_5678;
+        tb_fop = FOP_AND;
+        exp_result = 32'h0234_5678;
+        exp_Z = 0; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Basic high signal test #2
+        tb_rda = 32'h8765_4321;
+        tb_rdb = 32'h8765_4321;
+        tb_fop = FOP_AND;
+        exp_result = 32'h8765_4321;
+        exp_Z = 0; 
+        exp_N = 1;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Zero zero zero test
+        tb_rda = 0;
+        tb_rdb = 0;
+        tb_fop = FOP_AND;
+        exp_result = 0;
+        exp_Z = 1; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+    endtask
+
+
     initial begin
         $dumpfile("sim.vcd");
         $dumpvars(0, tb);
@@ -532,6 +602,9 @@ module tb;
         #1;
         
         SHIFT_RIGHT_ARITHMETIC;
+        #1;
+
+        AND;
         #1;
 
         $finish;
