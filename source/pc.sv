@@ -6,6 +6,7 @@ module pc(
     input [31:0] pc_write_value,
     input logic pc_immediate_jump,
     input logic in_en,
+    input logic auipc_in,
     input logic clock,
     input logic reset
 );
@@ -16,12 +17,12 @@ logic [31:0] pc_4;
 logic [31:0] pc_add_immediate;
 
 always_comb begin
+    pc_add_immediate = pc_immediate_jump ? pc_write_value + generated_immediate: current_pc + generated_immediate;
     pc_4 = current_pc + 4;
-    pc_add_immediate = pc_immediate_jump ? pc_write_value + {generated_immediate[30:0],1'b0}: current_pc + {generated_immediate[30:0],1'b0};
 
     next_pc = branch_decision ? pc_add_immediate : pc_4;
 end
-assign pc_add_4 = pc_4;
+assign pc_add_4 = auipc_in ? pc_add_immediate : pc_4;
 
 always_ff @(posedge clock, negedge reset) begin
     if(~reset) begin

@@ -31,7 +31,7 @@ initial begin
     $dumpfile("sim.vcd");
     $dumpvars(0, tb);
     //Test 1 beq
-    ALU_overflow_flag = 0;
+    
     tb_test_name = "beq branch";
     ALU_overflow_flag = 0;
 
@@ -191,9 +191,9 @@ initial begin
     //Test 13 overflow
     tb_test_name = "overflow test";
 
-    ALU_overflow_flag = 1
-    ALU_neg_flag = 1;
-    ALU_zero_flag = 0;
+    ALU_overflow_flag = 1;
+    ALU_neg_flag = 0;
+    ALU_zero_flag = 1;
     branch_type = 3'd1;
 
     exp_branch = 0;
@@ -212,34 +212,34 @@ endmodule
 
 module branch_logic(
     input logic [2:0] branch_type,
-    input logic ALU_neg_flag, ALU_zero_flag,
+    input logic ALU_neg_flag, ALU_zero_flag, ALU_overflow_flag,
     output logic b_out
 );
 
 always_comb begin
-    if ((branch_type == BEQ)&&(ALU_zero_flag)) begin
+    if ((branch_type == BEQ)&&(ALU_zero_flag) && (!ALU_overflow_flag)) begin
         b_out = 1'b1;
 
     end
 
-    else if ((branch_type == BNE) && (!ALU_zero_flag)) begin
+    else if ((branch_type == BNE) && (!ALU_zero_flag)&& (!ALU_overflow_flag)) begin
         b_out = 1'b1;
 
     end
 
-    else if ((branch_type == BLT) && (ALU_neg_flag)) begin
-        b_out = 1'b1;
-    end
-    
-    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_zero_flag)) begin
-        b_out = 1'b1;
-    end
-
-    else if ((branch_type == BLTU) && (ALU_neg_flag)) begin
+    else if ((branch_type == BLT) && (ALU_neg_flag)&& (!ALU_overflow_flag)) begin
         b_out = 1'b1;
     end
     
-    else if((branch_type == BGEU) && (!ALU_neg_flag) && (!ALU_zero_flag)) begin
+    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_zero_flag)&& (!ALU_overflow_flag)) begin
+        b_out = 1'b1;
+    end
+
+    else if ((branch_type == BLTU) && (ALU_neg_flag)&& (!ALU_overflow_flag)) begin
+        b_out = 1'b1;
+    end
+    
+    else if((branch_type == BGEU) && (!ALU_neg_flag) && (!ALU_zero_flag)&& (!ALU_overflow_flag)) begin
         b_out = 1'b1;
     end
 
