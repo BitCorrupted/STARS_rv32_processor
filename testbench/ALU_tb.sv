@@ -731,6 +731,71 @@ module tb;
         #1;
     endtask
 
+    task IMMEDIATE;
+        
+        tb_rda = $random;
+        tb_rdb = 0;
+        tb_fop = FOP_IMM;
+        exp_result = 0;
+        exp_Z = 1; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        tb_rda = $random;
+        tb_rdb = 12345678;
+        tb_fop = FOP_IMM;
+        exp_result = 12345678;
+        exp_Z = 0; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        tb_rda = 0;
+        tb_rdb = 80085;
+        tb_fop = FOP_IMM;
+        exp_result = 80085;
+        exp_Z = 0; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        tb_rda = $random;
+        tb_rdb = 0;
+        tb_fop = FOP_IMM;
+        exp_result = 0;
+        exp_Z = 1; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        repeat (10) begin
+            tb_rda = $random;
+            tb_rdb = $random;
+            tb_fop = FOP_IMM;
+            exp_result = tb_rdb;
+            exp_Z = (exp_result == 0) ? 1 : 0;
+            exp_N = exp_result[31];
+            #1;
+            check_result();
+            #1;
+            check_flag();
+            #1;
+        end
+    endtask     
+
     initial begin
         $dumpfile("sim.vcd");
         $dumpvars(0, tb);
@@ -762,6 +827,9 @@ module tb;
         #1;
 
         XOR;
+        #1;
+
+        IMMEDIATE;
         #1;
 
         $finish;
