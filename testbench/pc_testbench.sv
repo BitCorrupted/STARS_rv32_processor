@@ -8,12 +8,12 @@ logic [31:0] test_pc_write_value = 0;
 logic test_pc_immediate_jump = 0;
 logic test_in_en = 0;
 logic [31:0] test_pc;
+logic [31:0] last_pc;
 logic [31:0] test_pc_4;
 pc testpc(test_pc, test_pc_4, test_gen_i, test_branch_decision, test_pc_write_value, test_pc_immediate_jump, test_in_en, clock, reset);
 integer total_tests = 0;
 integer passed_tests = 0;
 
-//pleas work
 initial begin
     // make sure to dump the signals so we can see them in the waveform
     $dumpfile("sim.vcd");
@@ -22,45 +22,76 @@ initial begin
     reset_module;
     test_value(test_pc, 0, "PC reset value error");
 
-    test_in_en = 1;
-    test_gen_i = 32;
-    test_pc_write_value = 256;
-    pulse_clock;
-    test_value(test_pc, 4, "PC clock increment error");
-    pulse_clock;
-    test_value(test_pc, 8, "PC clock increment error");
-    test_branch_decision = 1;
-    pulse_clock;
-    test_value(test_pc, 72, "PC Branch Error");
-    pulse_clock;
-    test_value(test_pc, 136, "PC Branch Error");
-    test_gen_i = 32'hFFFFFFF0;
-    pulse_clock;
-    test_value(test_pc, 104, "PC Negative Branch Error");
-    test_pc_immediate_jump = 1;
-    pulse_clock;
-    test_value(test_pc, 224, "PC Absolute Branch Error");
+    // test_in_en = 1;
+    // test_gen_i = 32;
+    // test_pc_write_value = 256;
+    // pulse_clock;
+    // test_value(test_pc, 4, "PC clock increment error");
+    // pulse_clock;
+    // test_value(test_pc, 8, "PC clock increment error");
+    // test_branch_decision = 1;
+    // pulse_clock;
+    // test_value(test_pc, 72, "PC Branch Error");
+    // pulse_clock;
+    // test_value(test_pc, 136, "PC Branch Error");
+    // test_gen_i = 32'hFFFFFFF0;
+    // pulse_clock;
+    // test_value(test_pc, 104, "PC Negative Branch Error");
+    // test_pc_immediate_jump = 1;
+    // pulse_clock;
+    // test_value(test_pc, 224, "PC Absolute Branch Error");
 
-    test_branch_decision = 0;
-    test_pc_immediate_jump = 0;
-    test_in_en = 0;
-    test_gen_i = 32;
-    test_pc_write_value = 16;
-    pulse_clock;
-    test_value(test_pc, 224, "PC Write Disable Error");
-    pulse_clock;
-    test_value(test_pc, 224, "PC Write Disable Error");
-    test_branch_decision = 1;
-    pulse_clock;
-    test_value(test_pc, 224, "PC Write Disable Error");
-    pulse_clock;
-    test_value(test_pc, 224, "PC Write Disable Error");
-    test_gen_i = 32'hFFFFFFF0;
-    pulse_clock;
-    test_value(test_pc, 224, "PC Write Disable Error");
-    test_pc_immediate_jump = 1;
-    pulse_clock;
-    test_value(test_pc, 224, "PC Write Disable Error");
+    // test_branch_decision = 0;
+    // test_pc_immediate_jump = 0;
+    // test_in_en = 0;
+    // test_gen_i = 32;
+    // test_pc_write_value = 16;
+    // pulse_clock;
+    // test_value(test_pc, 224, "PC Write Disable Error");
+    // pulse_clock;
+    // test_value(test_pc, 224, "PC Write Disable Error");
+    // test_branch_decision = 1;
+    // pulse_clock;
+    // test_value(test_pc, 224, "PC Write Disable Error");
+    // pulse_clock;
+    // test_value(test_pc, 224, "PC Write Disable Error");
+    // test_gen_i = 32'hFFFFFFF0;
+    // pulse_clock;
+    // test_value(test_pc, 224, "PC Write Disable Error");
+    // test_pc_immediate_jump = 1;
+    // pulse_clock;
+    // test_value(test_pc, 224, "PC Write Disable Error");
+
+    for(int i = 0; i < 500; i++) begin
+        if($random > 32'hEEEEEEEE) begin
+            reset_module;
+            test_value(test_pc, 0, "PC Reset Error");
+        end
+        last_pc = test_pc;
+        test_branch_decision = $random > 80000000 ? 1 : 0;
+        test_pc_immediate_jump = $random > 80000000 ? 1 : 0;
+        test_in_en = $random > 80000000 ? 1 : 0;
+
+        test_gen_i = $random;
+        test_gen_i = test_gen_i / 4;
+        test_pc_write_value = $random;
+
+        test_value(test_pc_4, last_pc + 4, "PC_4 Add 4 Error");
+        pulse_clock;
+        if(~test_in_en)
+            test_value(test_pc, last_pc, "PC Write Disable Error");
+        else begin
+            if(test_branch_decision) begin
+                if(test_pc_immediate_jump)
+                    test_value(test_pc, test_pc_write_value + test_gen_i * 2, "PC Abs. Jump Error");
+                else
+                    test_value(test_pc, last_pc + test_gen_i * 2, "PC Rel. Jump Error");
+            end
+            else
+                test_value(test_pc, last_pc + 4, "PC Non-Branch Error");
+        end 
+        //$display("%d %d %d %d %d %d %d %D", test_pc, last_pc, test_pc_4, test_branch_decision, test_pc_immediate_jump, test_in_en, test_gen_i, test_pc_write_value);
+    end
 
 
     $display("Total Tests: %d Tests Passed: %d",total_tests, passed_tests);
