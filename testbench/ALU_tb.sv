@@ -190,6 +190,10 @@ module tb;
         // check_flag();
         // #1;
 
+        exp_C = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_Z = 0;
         // Random tests
         repeat (10) begin
             tb_rda = $random;
@@ -285,6 +289,10 @@ module tb;
         // check_flag();
         // #1;
 
+        exp_C = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_Z = 0;
         // Random tests
         repeat (10) begin
             tb_rda = $random;
@@ -358,6 +366,10 @@ module tb;
         check_flag();
         #1;
 
+        exp_C = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_Z = 0;
         // Random tests
         repeat (10) begin
             tb_rda = $random;
@@ -428,6 +440,10 @@ module tb;
         check_flag();
         #1;
 
+        exp_C = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_Z = 0;
         // Random tests
         repeat (10) begin
             tb_rda = $random;
@@ -444,7 +460,7 @@ module tb;
         end
     endtask
 
-    task SHIFT_RIGHT_ARITHMETIC; //needs fixing, >>> is not the correct syntax for shift right arithmetic
+    task SHIFT_RIGHT_ARITHMETIC;
     
         // Basic functional test
         tb_rda = 32'h0000_0010;
@@ -498,6 +514,11 @@ module tb;
         check_flag();
         #1;
 
+
+        exp_C = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_Z = 0;
         // Random tests
         repeat (10) begin
             tb_rda = $random;
@@ -781,6 +802,10 @@ module tb;
         check_flag();
         #1;
 
+        exp_C = 0;
+        exp_N = 0;
+        exp_V = 0;
+        exp_Z = 0;
         repeat (10) begin
             tb_rda = $random;
             tb_rdb = $random;
