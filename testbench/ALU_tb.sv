@@ -306,7 +306,7 @@ module tb;
             #1;
             check_flag();
             #1;
-
+            
         end
     endtask
 

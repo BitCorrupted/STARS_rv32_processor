@@ -19,8 +19,6 @@ module imm_generator (
     end
 endmodule
 
-
-
 module tb;
     logic [31:0] tb_inst, tb_imm_gen;
     logic [2:0] tb_type_i;
@@ -120,5 +118,4 @@ module tb;
 
         $finish;
     end
-
 endmodule
