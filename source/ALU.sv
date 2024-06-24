@@ -1,7 +1,7 @@
 module alu_mux (
-input logic [31:0] imm_gen, reg_b,
-input logic alu_mux_en,
-output logic [31:0] rdb
+    input logic [31:0] imm_gen, reg_b,
+    input logic alu_mux_en,
+    output logic [31:0] rdb
 );
     always_comb
         if (alu_mux_en)
