@@ -21,7 +21,7 @@ always_comb begin
         b_out = 1'b1;
     end
     
-    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_zero_flag)&& (!overflow)) begin
+    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_zero_flag)&& (!ALU_overflow_flag)) begin
         b_out = 1'b1;
     end
 
