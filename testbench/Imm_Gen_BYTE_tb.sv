@@ -8,6 +8,8 @@ endmodule
 module tb;
     logic [31:0] tb_b_out, tb_imm_gen_byte; 
 
+    byte_imm_gen byte_immediate_gen (.b_out(tb_b_out), .imm_gen_byte(tb_imm_gen_byte));
+
     logic total_imm_gen_byte_tests = 0;
     logic passed_imm_gen_byte_tests = 0;
     logic [31:0] exp_imm_gen_byte;
