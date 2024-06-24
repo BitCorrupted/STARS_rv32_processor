@@ -23,10 +23,10 @@ typedef enum logic [3:0] {
     } fop_t;
 
 module ALU (
-input logic signed [31:0] rda, rdb,
-input logic [3:0] fop,
-output logic signed [31:0] result,
-output logic Z, N, V//, C
+    input logic signed [31:0] rda, rdb,
+    input logic [3:0] fop,
+    output logic signed [31:0] result,
+    output logic Z, N, C, V
 );
 
     always_comb begin
@@ -56,7 +56,6 @@ output logic Z, N, V//, C
     //             C = 1'b1;
     //         end else
     //             C = '0;
-            
     //     end
     //     else C = '0;
     // end
@@ -64,9 +63,7 @@ output logic Z, N, V//, C
     //overflow
     always_comb begin
         if (fop == FOP_ADD) begin
-            if (rda[31] && rdb[31] && !result[31])
-                V = 1'b1;
-            if (!rda[31] && !rdb[31] && result[31])
+            if ((rda[31] && rdb[31] && !result[31]) || (!rda[31] && !rdb[31] && result[31]))
                 V = 1'b1;
             else
                 V = '0;
