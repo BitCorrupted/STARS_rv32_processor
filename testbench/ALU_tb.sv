@@ -111,7 +111,7 @@ module tb;
                 passed_flag_tests++;
     endtask
 
-    task ADD; //error with overflow on random checks
+    task ADD;
         
         // Basic functional tests
         tb_rda = 10;
