@@ -64,6 +64,7 @@ module top (
     logic [31:0] rdb;
     logic b_out;
     logic [31:0] data_to_write, data_read;
+    logic [31:0] b_out_connect;
 
   
   //this is a test
@@ -85,9 +86,9 @@ module top (
 
 
 
-  byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .reg_b_out(data_to_write), .b_out(b_out));
+  byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .reg_b_out(data_to_write), .b_out(b_out_connect));
 
-  byte_imm_gen byte_immediate_generator (.b_out(b_out), .imm_gen_byte(data_to_write));
+  byte_imm_gen byte_immediate_generator (.b_out(b_out_connect), .imm_gen_byte(data_to_write));
 
   ALU ALU(.rda(regA_data), .rdb(regB_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .C(C), .V(V));
 
@@ -335,13 +336,13 @@ endmodule
 
 module decoder (
     input logic [31:0] inst,
-    output logic [34:0] imm_gen,
+    output logic [31:0] imm_gen,
     output logic [4:0] rs1, rs2, rd,
     output logic [2:0] type_out,
     output logic [16:0] control_out
 );
-  typedef enum logic [2:0] {R = 0, I = 1, S = 2, SB = 3, UJ = 4, U = 5} inst_t;
-  inst_t inst_type;
+ // typedef enum logic [2:0] {R = 0, I = 1, S = 2, SB = 3, UJ = 4, U = 5} inst_t;
+  inst_type inst_t;
   logic [6:0] opcode;
   logic [2:0] funct3;
   logic [6:0] funct7;
@@ -349,19 +350,19 @@ module decoder (
 always_comb begin
     opcode = inst[6:0];
     case (opcode)
-        7'b0000011, 7'b0010011, 7'b0011011: inst_type = I;
-        7'b0110011, 7'b0111011: inst_type = R;
-        7'b0100011: inst_type = S;
-        7'b1100011: inst_type = SB;
-        7'b1101111: inst_type = UJ;
-        7'b0110111: inst_type = U;
-        default: inst_type = R;
+        7'b0000011, 7'b0010011, 7'b0011011: inst_t = I;
+        7'b0110011, 7'b0111011: inst_t = R;
+        7'b0100011: inst_t = S;
+        7'b1100011: inst_t = SB;
+        7'b1101111: inst_t = UJ;
+        7'b0110111: inst_t = U;
+        default: inst_t = R;
     endcase
-    type_out = inst_type;
+    type_out = inst_t;
 end
 
 always_comb begin
-    case (inst_type) 
+    case (inst_t) 
         R: begin funct7 = inst[31:25]; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = inst[24:20]; rd = inst[11:7]; end
         I: begin funct7 = 7'b0; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = 5'b0; rd = inst[11:7]; end
         S: begin funct7 = 7'b0; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = inst[24:20]; rd = 5'b0; end
