@@ -1,7 +1,7 @@
 module alu_mux (
-input logic [31:0] imm_gen, reg_b,
-input logic alu_mux_en,
-output logic [31:0] rdb
+    input logic [31:0] imm_gen, reg_b,
+    input logic alu_mux_en,
+    output logic [31:0] rdb
 );
     always_comb
         if (alu_mux_en)
@@ -23,11 +23,10 @@ typedef enum logic [3:0] {
     } fop_t;
 
 module ALU (
-input logic [31:0] rda, rdb,
-input logic [3:0] fop,
-output logic [31:0] result,
-output logic Z, N
-//, C, V
+    input logic signed [31:0] rda, rdb,
+    input logic [3:0] fop,
+    output logic signed [31:0] result,
+    output logic Z, N, C, V
 );
 
     always_comb begin
@@ -57,27 +56,24 @@ output logic Z, N
     //             C = 1'b1;
     //         end else
     //             C = '0;
-            
     //     end
     //     else C = '0;
     // end
 
-    // //overflow
-    // always_comb begin
-    //     if (fop == FOP_ADD) begin
-    //         if (rda[31] && rdb[31] && !result[31])
-    //             V = 1'b1;
-    //         if (!rda[31] && !rdb[31] && result[31])
-    //             V = 1'b1;
-    //         else
-    //             V = '0;
-    //     end
-    //         else if (fop == FOP_SUB) begin
-    //         if ((rda[31] && !rdb[31] && !result[31]) || (!rda[31] && rdb[31] && result[31]))
-    //             V = 1'b1;
-    //         else
-    //             V = '0;
-    //     end
-    //     else V = '0;
-    // end
+    //overflow
+    always_comb begin
+        if (fop == FOP_ADD) begin
+            if ((rda[31] && rdb[31] && !result[31]) || (!rda[31] && !rdb[31] && result[31]))
+                V = 1'b1;
+            else
+                V = '0;
+        end
+            else if (fop == FOP_SUB) begin
+            if ((rda[31] && !rdb[31] && !result[31]) || (!rda[31] && rdb[31] && result[31]))
+                V = 1'b1;
+            else
+                V = '0;
+        end
+        else V = '0;
+    end
 endmodule
