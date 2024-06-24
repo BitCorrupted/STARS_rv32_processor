@@ -45,9 +45,12 @@ module top (
 
     logic [31:0] rdb;
     logic b_out;
+    logic [31:0] data_to_write, data_read;
+
   
   //this is a test
-  ram ram(.clk(hz100), .rst(reset), .data_address(), .instruction_address(), .dm_read_en(), .dm_write_en(), .data_to_write(), .instruction_read(), .data_read());
+  ram ram(.clk(hz100), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
+   .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read));
   
   decoder decoder(.inst(inst), .imm_gen(imm_gen), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
 
@@ -60,7 +63,7 @@ module top (
 
   register_file register_file(.clk(hz100), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data));
 
-  writeback writeback(.memory_value(), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(read_next_pc), .register_write(register_write_data));
+  writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(read_next_pc), .register_write(register_write_data));
 
 
 
