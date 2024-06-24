@@ -650,6 +650,87 @@ module tb;
         #1;
     endtask
 
+    task XOR;
+
+        // Basic test #1             same as or test
+        tb_rda = 32'b111010101010101000001011111110;
+        tb_rdb = 0;
+        tb_fop = FOP_XOR;
+        exp_result = 32'b111010101010101000001011111110;
+        exp_Z = 0; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Basic test #2             same as or test
+        tb_rda = 0;
+        tb_rdb = 32'b111010101010101000001011111110;
+        tb_fop = FOP_XOR;
+        exp_result = 32'b111010101010101000001011111110;
+        exp_Z = 0; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Basic test #3 (negative)             same as or test
+        tb_rda = 32'b11111111111111111111110000000000;
+        tb_rdb = 32'b00000000000000000000001111111111;
+        tb_fop = FOP_XOR;
+        exp_result = 32'b11111111111111111111111111111111;
+        exp_Z = 0; 
+        exp_N = 1;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Basic test #4 (negative)             same as or test
+        tb_rda = 32'b10101010101010101010101010101010;
+        tb_rdb = 32'b1010101010101010101010101010101;
+        tb_fop = FOP_XOR;
+        exp_result = 32'b11111111111111111111111111111111;
+        exp_Z = 0; 
+        exp_N = 1;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Zero zero zero test
+        tb_rda = 0;
+        tb_rdb = 0;
+        tb_fop = FOP_XOR;
+        exp_result = 0;
+        exp_Z = 1; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+
+        // Xor property test
+        tb_rda = 32'b10101010101010101010101010101010;
+        tb_rdb = 32'b10101010101010101010101010101010;
+        tb_fop = FOP_XOR;
+        exp_result = 32'b0;
+        exp_Z = 1; 
+        exp_N = 0;
+        #1;
+        check_result();
+        #1;
+        check_flag();
+        #1;
+    endtask
+
     initial begin
         $dumpfile("sim.vcd");
         $dumpvars(0, tb);
@@ -678,6 +759,9 @@ module tb;
         #1;
 
         OR;
+        #1;
+
+        XOR;
         #1;
 
         $finish;
