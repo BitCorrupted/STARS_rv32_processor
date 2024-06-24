@@ -17,15 +17,28 @@ module top (
 );
 
   // Your code goes here...
+    logic [2:0] i_type; // instruction type (r, i, s, etc)
+    logic [16:0] instruction; // shortened instruction from decoder to control logic
+    logic [3:0] alu_op; // alu operation
+    logic [2:0] branch_type; // branch command
+    logic reg_write_en, alu_mux_en, store_byte, 
+    mem_to_reg, pc_absolute_jump_vec, load_byte, read_next_pc,
+    write_mem, read_mem;
+
+    logic [31:0] inst; // full 32 bit instruction
+
+    logic [34:0] imm_gen; // imm_gen output from control logic
+    logic [4:0] regA, regB, rd; // for register file
   
   //this is a test
  ram ram(.clk(hz100), .rst(reset), .data_address(), .instruction_address(), .dm_read_en(), .dm_write_en(), .data_to_write(), .instruction_read(), .data_read());
- decoder decoder(.inst(), .imm_gen(), .rs1(), .rs2(), .rd(), .type_out(), .control_out());
+ 
+ decoder decoder(.inst(inst), .imm_gen(imm_gen), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
 
- control_logic_unit control_logic(.i_type(), .instruction(), .alu_op(), .branch_type(), .register_write_en(), .alu_mux_en(), .store_byte(),
- .mem_to_reg(), .pc_absolute_jump_vec(), .load_byte(), .read_next_pc(), .write_mem(), .read_mem());
+ control_logic_unit control_logic(.i_type(i_type), .instruction(instruction), .alu_op(alu_op), .branch_type(branch_type), .reg_write_en(reg_write_en), .alu_mux_en(alu_mux_en), .store_byte(store_byte),
+ .mem_to_reg(mem_to_reg), .pc_absolute_jump_vec(pc_absolute_jump_vec), .load_byte(load_byte), .read_next_pc(read_next_pc), .write_mem(write_mem), .read_mem(read_mem));
 
- imm_generator imm_generator(.inst(), .type_i(), .imm_gen());
+ imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen());
 
 alu_mux alu_mux(.imm_gen(), .reg_b(), .alu_mux(), .rdb());
 

@@ -11,8 +11,8 @@ logic [31:0] mem [4095:0];
 initial $readmemh("cpu.mem", mem, 0, 4095);
 
 always_ff @(posedge clk) begin
-    if (dm_write_en && data_address) begin
-        mem[data_address[12:0]] <= data_to_write;
+    if (dm_write_en && data_address[11]) begin
+        mem[data_address[11:0]] <= data_to_write;
     end
 
 end
@@ -20,11 +20,11 @@ end
 always_ff @(posedge clk, negedge rst) begin
     if (!rst) begin
         data_read <= '0;
-        instruction_read <= mem[16'b0];
+        instruction_read <= mem[32'b0];
     end
 
     else if (dm_read_en) begin
-        data_read <= mem[data_address[12:0]];
+        data_read <= mem[data_address[11:0]];
 
     end
     
