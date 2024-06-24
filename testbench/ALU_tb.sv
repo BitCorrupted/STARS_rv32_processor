@@ -13,9 +13,9 @@ typedef enum logic [3:0] {
     } fop_t;
 
 module ALU (
-    input logic [31:0] rda, rdb,
+    input logic signed [31:0] rda, rdb,
     input logic [3:0] fop,
-    output logic [31:0] result,
+    output logic signed [31:0] result,
     output logic Z, N, C, V
 );
 
