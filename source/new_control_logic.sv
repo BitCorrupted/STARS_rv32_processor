@@ -88,6 +88,11 @@ always_comb begin
         reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0;
         end
 
+        7'b0110111: begin //auipc
+        branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b1; 
+        reg_write_en = 1'b1; read_next_pc = 1'b1; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0;
+        end
+
         7'b1101111: begin //jal
         branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b1; read_next_pc = 1'b1; pc_absolute_jump_vec = 1'b1; store_byte = 1'b0; load_byte = 1'b0;
