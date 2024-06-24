@@ -41,7 +41,59 @@ module tb;
     endtask
 
     task TYPE_I;
+        repeat (5) begin
+            tb_type_i = I;
+            tb_inst = $random;
+            exp_imm_gen = {{20{tb_inst[31]}}, tb_inst[31:20]};
+            #1;
+            check_imm_gen();
+            #1;
+        end
+    endtask
 
+    task TYPE_S;
+        repeat (5) begin
+            tb_type_i = S;
+            tb_inst = $random;
+            exp_imm_gen = {{20{tb_inst[31]}}, tb_inst[31:25], tb_inst[11:7]};
+            #1;
+            check_imm_gen();
+            #1;
+        end
+    endtask
+
+    task TYPE_SB;
+        repeat (5) begin
+            tb_type_i = SB;
+            tb_inst = $random;
+            exp_imm_gen = {{21{tb_inst[31]}}, tb_inst[7], tb_inst[30:25], tb_inst [11:8]};
+            #1;
+            check_imm_gen();
+            #1;
+        end
+    endtask
+
+    task TYPE_UJ;
+        repeat (5) begin
+            tb_type_i = UJ;
+            tb_inst = $random;
+            exp_imm_gen = {{12{tb_inst[31]}}, tb_inst[19:12], tb_inst[20], tb_inst[31:21]};
+            #1;
+            check_imm_gen();
+            #1;
+        end
+    endtask
+
+    task TYPE_U;
+        repeat (5) begin
+            tb_type_i = U;
+            tb_inst = $random;
+            exp_imm_gen = {tb_inst[31:12], 12'd0};
+            #1;
+            check_imm_gen();
+            #1;
+        end
+    endtask
 
     initial begin
         $dumpfile("sim.vcd");
@@ -49,6 +101,21 @@ module tb;
 
         tb_inst = 0;
         tb_type_i = 0;
+        #1;
+
+        TYPE_I;
+        #1;
+
+        TYPE_S;
+        #1;
+
+        TYPE_SB;
+        #1;
+
+        TYPE_UJ;
+        #1;
+
+        TYPE_U;
         #1;
 
         $finish;
