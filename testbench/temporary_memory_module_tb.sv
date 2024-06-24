@@ -48,6 +48,25 @@ task check_outputs;
     end
     endtask 
 
+    task check_instruction;
+        input logic [31:0] exp_register_val;  
+        input string check_num;
+
+    begin
+        $display("exp val = %d", exp_register_val);
+        if (exp_register_val == instruction_read) begin
+            $info("Correct reg output. test: %s", check_num);  
+
+        end
+
+        else begin
+            $error("Incorrect regA output. Actual: %0d, Expected: %0d. address %d test: %s", instruction_read, exp_register_val, instruction_address, check_num);
+        end
+
+
+    end
+    endtask 
+
 initial begin
     // make sure to dump the signals so we can see them in the waveform
     $dumpfile("sim.vcd");
@@ -70,12 +89,60 @@ initial begin
     end
 
 
-    //Test 1: write to mem
+   // Test 1: write to mem
+    tb_test_name = "write to mem";
+    dm_read_en = 0;
+    dm_write_en = 1;
+
+    #3;
+
+    for (integer i = 0; i < 32; i++) begin
+        data_address = i;
+        data_to_write = i;
+        
+        #6;
+
+    end
+
+    
+
+
+    
 
 
     //Test 2: read data
 
+    tb_test_name = "read mem";
+
+    dm_read_en = 1;
+    #3;
+
+    for (integer i = 0; i < 32; i++) begin
+        data_address = i;
+         exp_register_val = i;
+        #3;
+        check_outputs( exp_register_val, tb_test_name);
+        #6;
+
+    end
+
+
+
     //Test 3: read instruction
+
+    tb_test_name = "read instruction";
+
+    dm_read_en = 0;
+    #3;
+
+    for (integer i = 0; i < 32; i++) begin
+        instruction_address = i;
+         exp_register_val = i;
+        #3;
+        check_instruction(exp_register_val, tb_test_name);
+        #6;
+
+    end
 
     //Test 4: 
 
@@ -111,12 +178,12 @@ always_ff @(posedge clk, negedge rst) begin
         instruction_read <= mem[16'b0];
     end
 
-    else if (dm_read_en && data_address) begin
+    else if (dm_read_en) begin
         data_read <= mem[data_address];
 
     end
     
-    else if (!dm_read_en && data_address) begin
+    else if (!dm_read_en) begin
         instruction_read <= mem[instruction_address];
 
     end
