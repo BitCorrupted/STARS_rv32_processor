@@ -54,9 +54,7 @@ module ALU (
     //overflow
     always_comb begin
         if (fop == FOP_ADD) begin
-            if (rda[31] && rdb[31] && !result[31])
-                V = 1'b1;
-            if (!rda[31] && !rdb[31] && result[31])
+            if ((rda[31] && rdb[31] && !result[31]) || (!rda[31] && !rdb[31] && result[31]))
                 V = 1'b1;
             else
                 V = '0;
