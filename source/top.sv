@@ -66,6 +66,7 @@ module top (
     logic b_out;
     logic [31:0] data_to_write, data_read;
     logic [31:0] b_out_connect;
+    assign right[7:0] = data_to_write[7:0];
 
   
   //this is a test
@@ -79,7 +80,7 @@ module top (
 
   branch_logic branch_logic(.branch_type(branch_type), .ALU_neg_flag(N), .ALU_overflow_flag(V), .ALU_zero_flag(Z), .b_out(branch_choice));
 
-  pc pc(.pc_out(program_counter), .pc_add_4(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_immediate_jump(pc_absolute_jump_vec), .in_en(), .auipc_in(alu_mux_en), .clock(hz100), .reset(reset));
+  pc pc(.pc_out(program_counter), .pc_add_4(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_immediate_jump(pc_absolute_jump_vec), .in_en(1'b1), .auipc_in(alu_mux_en), .clock(hz100), .reset(reset));
 
   register_file register_file(.clk(hz100), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data));
 
@@ -96,13 +97,6 @@ module top (
   imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen(imm_gen));
 
   alu_mux alu_mux(.imm_gen(imm_gen), .reg_b(regB_data), .alu_mux_en(alu_mux_en), .rdb(rdb));
-
-
-
-
-
-
-
 
 endmodule
 
@@ -143,20 +137,6 @@ module ALU (
     assign Z = (result == 0) ? 1'b1 : 1'b0;
     assign N = result[31];
 
-    // //carry out 
-    // always_comb begin
-    //     if (fop == FOP_ADD || fop == FOP_SUB) begin
-    //         if ((fop == FOP_ADD) && rda[31] && rdb[31]) begin
-    //             C = 1'b1;
-    //         end if ((fop == FOP_SUB) && rda[31] && !rda[31]) begin
-    //             C = 1'b1;
-    //         end else
-    //             C = '0;
-    //     end
-    //     else C = '0;
-    // end
-
-    //overflow
     always_comb begin
         if (fop == FOP_ADD) begin
             if ((rda[31] && rdb[31] && !result[31]) || (!rda[31] && !rdb[31] && result[31]))
@@ -447,19 +427,19 @@ always_comb begin
     pc_add_immediate = pc_immediate_jump ? pc_write_value + generated_immediate: current_pc + generated_immediate;
     pc_4 = current_pc + 4;
 
-    next_pc = branch_decision ? pc_add_immediate : pc_4;
+    next_pc = current_pc;
+    if(in_en) begin
+        next_pc = branch_decision ? pc_add_immediate : pc_4;
+    end
 end
 assign pc_add_4 = auipc_in ? pc_add_immediate : pc_4;
 
-always_ff @(posedge clock, negedge reset) begin
-    if(~reset) begin
-        current_pc = 0; //placeholder constant for initialization
+always_ff @(posedge clock, posedge reset) begin
+    if(reset) begin
+        current_pc <= '0; //placeholder constant for initialization
     end
     else begin
-        if(in_en)
-            current_pc = next_pc;
-        else
-            current_pc = current_pc;
+        current_pc <= next_pc;
     end
 
 end
@@ -489,7 +469,7 @@ always @(posedge clk) begin
         memory[data_address[11:0]] <= data_to_write;
     end
     data_read <= memory[data_address[11:0]];
-    instruction_read <= memory[instruction_address[11:0]];
+    instruction_read <= memory[{4'b0, instruction_address[9:2]}];
 end
 
 
@@ -508,10 +488,12 @@ module register_file(
 logic [31:0][31:0] registers_state;
 logic [31:0][31:0] next_registers_state;
 
+assign regA_data = next_registers_state[regA_address];
+assign regB_data = next_registers_state[regB_address];
+
 always_comb begin
     next_registers_state = registers_state;
-    regA_data = next_registers_state[regA_address];
-    regB_data = next_registers_state[regB_address];
+
 
     if (register_write_en && rd_address != 5'b0) begin
         next_registers_state[rd_address] = register_write_data;
@@ -519,8 +501,8 @@ always_comb begin
 end
 
 
-always_ff @(posedge clk, negedge rst) begin
-    if (!rst) begin
+always_ff @(posedge clk, posedge rst) begin
+    if (rst) begin
         //for (integer i = 0; i < 32; i++) begin
         //    registers_state[i] <= 32'b0;
         //end
@@ -569,5 +551,3 @@ endmodule
 
 
 
-
-// Add more modules down here...

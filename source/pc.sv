@@ -20,19 +20,19 @@ always_comb begin
     pc_add_immediate = pc_immediate_jump ? pc_write_value + generated_immediate: current_pc + generated_immediate;
     pc_4 = current_pc + 4;
 
-    next_pc = branch_decision ? pc_add_immediate : pc_4;
+    next_pc = current_pc;
+    if(in_en) begin
+        next_pc = branch_decision ? pc_add_immediate : pc_4;
+    end
 end
 assign pc_add_4 = auipc_in ? pc_add_immediate : pc_4;
 
-always_ff @(posedge clock, negedge reset) begin
-    if(~reset) begin
-        current_pc = 0; //placeholder constant for initialization
+always_ff @(posedge clock, posedge reset) begin
+    if(reset) begin
+        current_pc <= '0; //placeholder constant for initialization
     end
     else begin
-        if(in_en)
-            current_pc = next_pc;
-        else
-            current_pc = current_pc;
+        current_pc <= next_pc;
     end
 
 end
