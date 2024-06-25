@@ -467,16 +467,7 @@ assign pc_out = current_pc;
 
 endmodule
 
-module ram (
-    input logic clk, write_enable,
-    input logic [11:0] address_IM, address_IM,
-    input logic [31:0] data_in,
-    output reg [31:0] data_out,
-    output reg [31:0] instr_out
-);
-    reg [31:0] memory [4095:0];
 
-endmodule
 
 module ram (
     input logic clk, rst,
@@ -487,7 +478,7 @@ module ram (
     output logic [31:0] instruction_read, data_read // things we got from memory dude
 );
 
-logic [31:0] mem [4095:0];
+logic [31:0] memory [4095:0];
 
 initial begin
         $readmemh("fill.txt", memory);
