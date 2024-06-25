@@ -97,15 +97,26 @@ initial begin
 
     reset_module;
 
-    #6;
-    inst = 32'b00000000010100000000000100010011;
+//     inst = 32'b00000000010100000000000100010011;
 
-#6;
+// #6;
 
 
-    inst = 32'b00000000001000010000000010010011;
+//     inst = 32'b00000000000000000000010001100011;
 
-    #3 $finish;
+//     #6;
+//     inst = 32'b00000000000000000100010001100011;
+       inst = 32'h00000393;
+    #6 inst = 32'h00700863;
+    #6 inst = 32'h00500413;
+    #6 inst = 32'h00600413;
+    #6 inst = 32'h00700413;
+    #6 inst = 32'h00100413;
+    #6 inst = 32'h00d00413;
+    #6 inst = 32'h01600413;
+    #6 inst = 32'h01c00413; 
+
+    #5 $finish;
 end
 
 endmodule
@@ -329,22 +340,22 @@ always_comb begin
         17'b00000000000010111: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b1; 
         reg_write_en = 1'b1; read_next_pc = 1'b1; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //auipc
 
-        17'b00000000011100011: begin branch_type = BEQ; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000000001100011: begin branch_type = BEQ; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //beq
 
-        17'b00000001001100011: begin branch_type = BNE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000000011100011: begin branch_type = BNE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bne
 
-        17'b00000001011100011: begin branch_type = BLT; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000001001100011: begin branch_type = BLT; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //blt
 
-        17'b00000001101100011: begin branch_type = BGE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000001011100011: begin branch_type = BGE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bge
 
-        17'b00000001111100011: begin branch_type = BLT; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000001101100011: begin branch_type = BLTU; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bltu
 
-        17'b00000000001100011: begin branch_type = BGE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000001111100011: begin branch_type = BGEU; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bgeu
 
         17'b00000000001100111: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b0; 
@@ -468,7 +479,7 @@ logic [31:0] next_pc;
 logic [31:0] pc_4;
 logic [31:0] pc_add_immediate;
 
-assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + generated_immediate + 4) : (current_pc + generated_immediate + 4); // program counter stuff
+assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + {generated_immediate[30:0],1'b0}) : (current_pc + {generated_immediate[30:0],1'b0}); // program counter stuff
 //assign pc_add_4 = auipc_in ? pc_add_immediate : (current_pc + 4);
 
 
@@ -536,15 +547,74 @@ end
 
 always @(posedge clk) begin
     if (dm_write_en) begin
-        memory[data_address[11:0]] <= data_to_write;
+        memory[{4'b0, data_address[7:0]}] <= data_to_write;
     end
-    data_read <= memory[data_address[11:0]];
+    data_read <= memory[{4'b0, data_address[7:0]}];
     instruction_read <= memory[{4'b0, instruction_address[9:2]}];
 end
 
 
 
 endmodule
+
+module synckey(
+  input logic [19:0] in,
+  output logic [4:0] out,
+  output logic strobe,
+  input logic clk, rst
+);
+
+assign out = in[19] ? 5'd19:
+in[18] ? 5'd18: 
+in[17] ? 5'd17: 
+in[16] ? 5'd16: 
+in[15] ? 5'd15: 
+in[14] ? 5'd14: 
+in[13] ? 5'd13: 
+in[12] ? 5'd12: 
+in[11] ? 5'd11: 
+in[10] ? 5'd10: 
+in[9] ? 5'd9: 
+in[8] ? 5'd8: 
+in[7] ? 5'd7: 
+in[6] ? 5'd6: 
+in[5] ? 5'd5: 
+in[4] ? 5'd4: 
+in[3] ? 5'd3: 
+in[2] ? 5'd2: 
+in[1] ? 5'd1:  
+in[0] ? 5'd0: 5'd0;
+
+//assign strobe = |in;
+
+logic Q;
+always_ff @(posedge clk, posedge rst) begin
+
+  if (rst) begin
+    Q <= 1'b0;
+  end
+  else begin
+    Q <= |in;
+  end
+
+end
+
+always_ff @(posedge clk, posedge rst) begin
+  if (rst) begin
+    strobe <= 1'b0;
+  end
+  else begin
+    strobe <= Q;
+  end
+end 
+
+
+endmodule
+
+
+
+
+
 
 
 

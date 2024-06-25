@@ -76,6 +76,7 @@ module core(
 
     logic b_out;
     logic [31:0] data_to_write, data_read;
+    logic pc_en;
     
     //logic [31:0] b_out_connect;
    assign right = register_write_data[7:0];
@@ -88,7 +89,7 @@ logic keyclk;
   synckey s1(.in({19'b0, pb[0]}), .out(), .strobe(keyclk), .clk(hz100), .rst(reset));
 
   ram ram(.clk(keyclk), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
-    .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read));
+    .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read), .pc_enable(pc_en));
   
   decoder decoder(.inst(inst), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
 
@@ -97,7 +98,7 @@ logic keyclk;
 
   branch_logic branch_logic(.branch_type(branch_type), .ALU_neg_flag(N), .ALU_overflow_flag(V), .ALU_zero_flag(Z), .b_out(branch_choice));
 
-   pc pc(.pc_out(program_counter), .pc_add_4(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_immediate_jump(pc_absolute_jump_vec), .in_en(1'b1), .auipc_in(alu_mux_en), .clock(keyclk), .reset(reset));
+   pc pc(.pc_out(program_counter), .pc_add_4(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_immediate_jump(pc_absolute_jump_vec), .in_en(pc_en), .auipc_in(alu_mux_en), .clock(keyclk), .reset(reset));
 
   register_file register_file(.clk(keyclk), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data));
 
@@ -333,22 +334,22 @@ always_comb begin
         17'b00000000000010111: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b1; 
         reg_write_en = 1'b1; read_next_pc = 1'b1; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //auipc
 
-        17'b00000000011100011: begin branch_type = BEQ; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000000001100011: begin branch_type = BEQ; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //beq
 
-        17'b00000001001100011: begin branch_type = BNE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000000011100011: begin branch_type = BNE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bne
 
-        17'b00000001011100011: begin branch_type = BLT; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000001001100011: begin branch_type = BLT; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //blt
 
-        17'b00000001101100011: begin branch_type = BGE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000001011100011: begin branch_type = BGE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bge
 
-        17'b00000001111100011: begin branch_type = BLT; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000001101100011: begin branch_type = BLTU; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bltu
 
-        17'b00000000001100011: begin branch_type = BGE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        17'b00000001111100011: begin branch_type = BGEU; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
         reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bgeu
 
         17'b00000000001100111: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b0; 
@@ -472,7 +473,7 @@ logic [31:0] next_pc;
 logic [31:0] pc_4;
 logic [31:0] pc_add_immediate;
 
-assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + {generated_immediate[30:0],1'b0}) : (current_pc + {generated_immediate[30:0],1'b0}); // program counter stuff
+assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + {generated_immediate[30:0],1'b0} + 4) : (current_pc + generated_immediate + 4); // program counter stuff
 //assign pc_add_4 = auipc_in ? pc_add_immediate : (current_pc + 4);
 
 
@@ -523,19 +524,77 @@ assign register_write = register_value;
 endmodule
 
 
+
 module ram (
     input logic clk, rst,
     input logic [31:0] data_address, // alu result to be read or written
     input logic [31:0] instruction_address, // no brainer, it is the insturction address
     input logic dm_read_en, dm_write_en, // enable ports for the read and enable
     input logic [31:0] data_to_write, // data to be written into memory
-    output logic [31:0] instruction_read, data_read // things we got from memory dude
+    output logic [31:0] instruction_read, data_read, // things we got from memory dude
+    output logic pc_enable
 );
 
 logic [31:0] memory [4095:0];
 
 initial begin
         $readmemh("cpu.mem", memory);
+end
+
+
+typedef enum logic {IDLE, WAIT} StateType;
+
+StateType state, next_state;
+
+
+always_ff @(posedge clk, posedge rst) begin
+
+  if (rst) begin
+
+    state <= IDLE;
+
+  end else begin
+    state <= next_state;
+  end
+
+end
+
+
+// assign data_out = memory[address_DM];
+
+// assign instr_out = memory[address_IM];
+
+
+always_comb begin
+
+  pc_enable = 1'b1;
+
+  next_state = state;
+
+  case (state)
+
+  IDLE: begin
+
+    if (dm_read_en | dm_write_en) begin
+
+      pc_enable = 1'b0;
+
+      next_state = WAIT;
+
+    end
+
+  end
+
+  WAIT: begin
+
+  // pc_enable = 1'b1;
+
+    next_state = IDLE;
+
+  end
+
+  endcase
+
 end
 
 always @(posedge clk) begin
