@@ -481,7 +481,7 @@ module ram (
 logic [31:0] memory [4095:0];
 
 initial begin
-        $readmemh("fill.txt", memory);
+        $readmemh("cpu.mem", memory);
 end
 
 always @(posedge clk) begin
