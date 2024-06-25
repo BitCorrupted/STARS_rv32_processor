@@ -472,7 +472,7 @@ logic [31:0] next_pc;
 logic [31:0] pc_4;
 logic [31:0] pc_add_immediate;
 
-assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + {generated_immediate[30:0],1'b0}) : (current_pc + {generated_immediate[30:0],1'b0}); // program counter stuff
+assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + generated_immediate) : (current_pc + {generated_immediate[30:0],1'b0}); // program counter stuff
 //assign pc_add_4 = auipc_in ? pc_add_immediate : (current_pc + 4);
 
 
