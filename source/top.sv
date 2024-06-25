@@ -35,6 +35,18 @@ module top (
   input  logic txready, rxready
 );
 
+core core(.hz100(hz100), .reset(reset), .right(right));
+
+
+
+endmodule
+
+module core(
+  input logic hz100, reset,
+  output logic [7:0] right
+
+);
+
   // Your code goes here...
     logic [2:0] i_type; // instruction type (r, i, s, etc)
     logic [16:0] instruction; // shortened instruction from decoder to control logic
@@ -62,62 +74,95 @@ module top (
     logic [31:0] result;
     logic Z, N, C, V;
 
-    logic [31:0] rdb;
     logic b_out;
     logic [31:0] data_to_write, data_read;
-    logic [31:0] b_out_connect;
-    assign right[7:0] = data_to_write[7:0];
+    //logic [31:0] b_out_connect;
+    assign right = data_to_write[7:0];
 
   
   //this is a test
   ram ram(.clk(hz100), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
-   .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read));
+    .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read));
   
   decoder decoder(.inst(inst), .imm_gen(imm_gen), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
 
-  control_logic_unit control_logic(.i_type(i_type), .instruction(instruction), .alu_op(alu_op), .branch_type(branch_type), .reg_write_en(reg_write_en), .alu_mux_en(alu_mux_en), .store_byte(store_byte),
+   control_logic_unit control_logic(.i_type(i_type), .instruction(instruction), .alu_op(alu_op), .branch_type(branch_type), .reg_write_en(reg_write_en), .alu_mux_en(alu_mux_en), .store_byte(store_byte),
   .mem_to_reg(mem_to_reg), .pc_absolute_jump_vec(pc_absolute_jump_vec), .load_byte(load_byte), .read_next_pc(read_next_pc), .write_mem(write_mem), .read_mem(read_mem));
 
   branch_logic branch_logic(.branch_type(branch_type), .ALU_neg_flag(N), .ALU_overflow_flag(V), .ALU_zero_flag(Z), .b_out(branch_choice));
 
-  pc pc(.pc_out(program_counter), .pc_add_4(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_immediate_jump(pc_absolute_jump_vec), .in_en(1'b1), .auipc_in(alu_mux_en), .clock(hz100), .reset(reset));
+   pc pc(.pc_out(program_counter), .pc_add_4(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_immediate_jump(pc_absolute_jump_vec), .in_en(1'b1), .auipc_in(alu_mux_en), .clock(hz100), .reset(reset));
 
   register_file register_file(.clk(hz100), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data));
 
-  writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(read_next_pc), .register_write(register_write_data));
+   writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data));
 
 
 
-  byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .reg_b_out(data_to_write), .b_out(b_out_connect));
+   byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .b_out(data_to_write));
 
-  byte_imm_gen byte_immediate_generator (.b_out(b_out_connect), .imm_gen_byte(data_to_write));
+   //byte_imm_gen byte_immediate_generator (.b_out(b_out_connect), .imm_gen_byte(data_to_write));
 
-  ALU ALU(.rda(regA_data), .rdb(regB_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .C(C), .V(V));
+   ALU ALU(.rda(regA_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .C(C), .V(V), .imm_gen(imm_gen), .reg_b(regB_data), .alu_mux_en(alu_mux_en));
 
-  imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen(imm_gen));
-
-  alu_mux alu_mux(.imm_gen(imm_gen), .reg_b(regB_data), .alu_mux_en(alu_mux_en), .rdb(rdb));
+   imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen(imm_gen));
 
 endmodule
 
-module alu_mux (
-    input logic [31:0] imm_gen, reg_b,
-    input logic alu_mux_en,
-    output logic [31:0] rdb
+module register_file(
+    input logic clk, rst,
+    input logic [4:0] regA_address, regB_address, rd_address,
+    input logic register_write_en,
+    input logic [31:0] register_write_data,
+    output logic [31:0] regA_data, regB_data
+
 );
-    always_comb
-        if (alu_mux_en)
-            rdb = reg_b;
-        else
-            rdb = imm_gen;
+
+logic [31:0][31:0] registers_state;
+logic [31:0][31:0] next_registers_state;
+
+assign regA_data = next_registers_state[regA_address];
+assign regB_data = next_registers_state[regB_address];
+
+always_comb begin
+    next_registers_state = registers_state;
+
+
+    if (register_write_en && rd_address != 5'b0) begin
+        next_registers_state[rd_address] = register_write_data;
+    end
+end
+
+
+always_ff @(posedge clk, posedge rst) begin
+    if (rst) begin
+        //for (integer i = 0; i < 32; i++) begin
+        //    registers_state[i] <= 32'b0;
+        //end
+        //registers_state <= '{default:'0};
+        registers_state <= '0;
+    end
+
+    else begin
+        registers_state <= next_registers_state;
+    end
+
+
+end
+
 endmodule
 
 module ALU (
-    input logic signed [31:0] rda, rdb,
+    input logic signed [31:0] rda, imm_gen, reg_b,
     input logic [3:0] fop,
+    input logic alu_mux_en,
     output logic signed [31:0] result,
     output logic Z, N, C, V
 );
+
+  logic [31:0] rdb;
+  assign rdb = (alu_mux_en) ? imm_gen : reg_b;
+
 
     always_comb begin
         case (fop)
@@ -129,7 +174,7 @@ module ALU (
             FOP_AND : result = rda & rdb;
             FOP_OR : result = rda | rdb;
             FOP_XOR : result = rda ^ rdb;
-            FOP_IMM : result = rdb;
+            FOP_IMM : result = imm_gen;
             default : result = '0;
         endcase
     end
@@ -143,8 +188,7 @@ module ALU (
                 V = 1'b1;
             else
                 V = '0;
-        end
-            else if (fop == FOP_SUB) begin
+        end else if (fop == FOP_SUB) begin
             if ((rda[31] && !rdb[31] && !result[31]) || (!rda[31] && rdb[31] && result[31]))
                 V = 1'b1;
             else
@@ -365,26 +409,25 @@ endmodule
 module byte_demux (
     input logic [31:0] reg_b,
     input logic store_byte_en,
-    output logic [31:0] reg_b_out, b_out
+    output logic [31:0]  b_out
 );
 
     always_comb begin
-        if (store_byte_en) begin
-            b_out = reg_b;
-            reg_b_out = '0;
-        end else begin
-            reg_b_out = reg_b;
-            b_out = '0;
-        end
+      if(store_byte_en) begin
+        b_out = {24'd0, reg_b[7:0]};
+      end else begin
+        b_out = reg_b;
+      end
+    
     end
 endmodule
 
-module byte_imm_gen (
-    input logic [31:0] b_out,
-    output logic [31:0] imm_gen_byte
-);
-    assign imm_gen_byte = {24'd0, b_out[7:0]};
-endmodule
+// module byte_imm_gen (
+//     input logic [31:0] b_out,
+//     output logic [31:0] imm_gen_byte
+// );
+//     assign imm_gen_byte = {24'd0, b_out[7:0]};
+// endmodule
 
 module imm_generator (
     input logic [31:0] inst,
@@ -406,11 +449,11 @@ endmodule
 
 
 module pc(
-    output [31:0] pc_out,
-    output [31:0] pc_add_4,
-    input [31:0] generated_immediate,
+    output logic [31:0] pc_out,
+    output logic [31:0] pc_add_4,
+    input logic [31:0] generated_immediate,
     input logic branch_decision,
-    input [31:0] pc_write_value,
+    input logic [31:0] pc_write_value,
     input logic pc_immediate_jump,
     input logic in_en,
     input logic auipc_in,
@@ -423,16 +466,16 @@ logic [31:0] next_pc;
 logic [31:0] pc_4;
 logic [31:0] pc_add_immediate;
 
-always_comb begin
-    pc_add_immediate = pc_immediate_jump ? pc_write_value + generated_immediate: current_pc + generated_immediate;
-    pc_4 = current_pc + 4;
+assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + generated_immediate + 4) : (current_pc + generated_immediate + 4); // program counter stuff
+//assign pc_add_4 = auipc_in ? pc_add_immediate : (current_pc + 4);
 
+
+always_comb begin
     next_pc = current_pc;
     if(in_en) begin
-        next_pc = branch_decision ? pc_add_immediate : pc_4;
+        next_pc = branch_decision ? pc_add_immediate : (current_pc + 4);
     end
 end
-assign pc_add_4 = auipc_in ? pc_add_immediate : pc_4;
 
 always_ff @(posedge clock, posedge reset) begin
     if(reset) begin
@@ -447,6 +490,31 @@ assign pc_out = current_pc;
 
 endmodule
 
+module writeback(
+    input logic [31:0] memory_value,
+    input logic [31:0] ALU_value,
+    input logic [31:0] pc_4_value,
+    input logic mem_to_reg,
+    input logic load_byte,
+    input logic read_pc_4,
+    output logic [31:0] register_write
+);
+
+logic [31:0] register_value;
+
+always_comb begin
+    if(read_pc_4)
+        register_value = pc_4_value;
+    else if(~mem_to_reg)
+        register_value = ALU_value;
+    else if(load_byte)
+        register_value = {24'b0,memory_value[7:0]};
+    else
+        register_value = memory_value;
+end
+assign register_write = register_value;
+
+endmodule
 
 
 module ram (
@@ -475,77 +543,6 @@ end
 
 
 endmodule
-
-module register_file(
-    input logic clk, rst,
-    input logic [4:0] regA_address, regB_address, rd_address,
-    input logic register_write_en,
-    input logic [31:0] register_write_data,
-    output logic [31:0] regA_data, regB_data
-
-);
-
-logic [31:0][31:0] registers_state;
-logic [31:0][31:0] next_registers_state;
-
-assign regA_data = next_registers_state[regA_address];
-assign regB_data = next_registers_state[regB_address];
-
-always_comb begin
-    next_registers_state = registers_state;
-
-
-    if (register_write_en && rd_address != 5'b0) begin
-        next_registers_state[rd_address] = register_write_data;
-    end
-end
-
-
-always_ff @(posedge clk, posedge rst) begin
-    if (rst) begin
-        //for (integer i = 0; i < 32; i++) begin
-        //    registers_state[i] <= 32'b0;
-        //end
-        //registers_state <= '{default:'0};
-        registers_state <= '0;
-    end
-
-    else begin
-        registers_state <= next_registers_state;
-    end
-
-
-end
-
-endmodule
-
-module writeback(
-    input [31:0] memory_value,
-    input [31:0] ALU_value,
-    input [31:0] pc_4_value,
-    input mem_to_reg,
-    input load_byte,
-    input read_pc_4,
-    output [31:0] register_write
-);
-
-logic [31:0] register_value;
-
-always_comb begin
-    if(read_pc_4)
-        register_value = pc_4_value;
-    else if(~mem_to_reg)
-        register_value = ALU_value;
-    else if(load_byte)
-        register_value = {24'b0,memory_value[7:0]};
-    else
-        register_value = memory_value;
-end
-assign register_write = register_value;
-
-endmodule
-
-
 
 
 
