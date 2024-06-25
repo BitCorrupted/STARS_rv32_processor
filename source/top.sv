@@ -35,7 +35,7 @@ module top (
   input  logic txready, rxready
 );
 
-core core(.hz100(hz100), .reset(reset), .right(right));
+core core(.hz100(hz100), .reset(reset), .right(left), .pb(pb));
 
 
 
@@ -43,12 +43,12 @@ endmodule
 
 module core(
   input logic hz100, reset,
+  input logic [20:0] pb, 
   output logic [7:0] right
 
 );
 
-  // Your code goes here...
-    logic [2:0] i_type; // instruction type (r, i, s, etc)
+  logic [2:0] i_type; // instruction type (r, i, s, etc)
     logic [16:0] instruction; // shortened instruction from decoder to control logic
     logic [3:0] alu_op; // alu operation
     logic [2:0] branch_type; // branch command
@@ -76,24 +76,30 @@ module core(
 
     logic b_out;
     logic [31:0] data_to_write, data_read;
+    
     //logic [31:0] b_out_connect;
-    assign right = data_to_write[7:0];
+   assign right = register_write_data[7:0];
 
   
   //this is a test
-  ram ram(.clk(hz100), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
+
+
+logic keyclk;
+  synckey s1(.in({19'b0, pb[0]}), .out(), .strobe(keyclk), .clk(hz100), .rst(reset));
+
+  ram ram(.clk(keyclk), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
     .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read));
   
-  decoder decoder(.inst(inst), .imm_gen(imm_gen), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
+  decoder decoder(.inst(inst), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
 
    control_logic_unit control_logic(.i_type(i_type), .instruction(instruction), .alu_op(alu_op), .branch_type(branch_type), .reg_write_en(reg_write_en), .alu_mux_en(alu_mux_en), .store_byte(store_byte),
   .mem_to_reg(mem_to_reg), .pc_absolute_jump_vec(pc_absolute_jump_vec), .load_byte(load_byte), .read_next_pc(read_next_pc), .write_mem(write_mem), .read_mem(read_mem));
 
   branch_logic branch_logic(.branch_type(branch_type), .ALU_neg_flag(N), .ALU_overflow_flag(V), .ALU_zero_flag(Z), .b_out(branch_choice));
 
-   pc pc(.pc_out(program_counter), .pc_add_4(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_immediate_jump(pc_absolute_jump_vec), .in_en(1'b1), .auipc_in(alu_mux_en), .clock(hz100), .reset(reset));
+   pc pc(.pc_out(program_counter), .pc_add_4(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_immediate_jump(pc_absolute_jump_vec), .in_en(1'b1), .auipc_in(alu_mux_en), .clock(keyclk), .reset(reset));
 
-  register_file register_file(.clk(hz100), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data));
+  register_file register_file(.clk(keyclk), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data));
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data));
 
@@ -106,7 +112,7 @@ module core(
    ALU ALU(.rda(regA_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .C(C), .V(V), .imm_gen(imm_gen), .reg_b(regB_data), .alu_mux_en(alu_mux_en));
 
    imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen(imm_gen));
-
+  
 endmodule
 
 module register_file(
@@ -121,8 +127,8 @@ module register_file(
 logic [31:0][31:0] registers_state;
 logic [31:0][31:0] next_registers_state;
 
-assign regA_data = next_registers_state[regA_address];
-assign regB_data = next_registers_state[regB_address];
+assign regA_data = registers_state[regA_address];
+assign regB_data = registers_state[regB_address];
 
 always_comb begin
     next_registers_state = registers_state;
@@ -363,7 +369,7 @@ endmodule
 
 module decoder (
     input logic [31:0] inst,
-    output logic [31:0] imm_gen,
+    //output logic [31:0] imm_gen,
     output logic [4:0] rs1, rs2, rd,
     output logic [2:0] type_out,
     output logic [16:0] control_out
@@ -466,7 +472,7 @@ logic [31:0] next_pc;
 logic [31:0] pc_4;
 logic [31:0] pc_add_immediate;
 
-assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + generated_immediate + 4) : (current_pc + generated_immediate + 4); // program counter stuff
+assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + generated_immediate) : (current_pc + generated_immediate); // program counter stuff
 //assign pc_add_4 = auipc_in ? pc_add_immediate : (current_pc + 4);
 
 
@@ -534,9 +540,9 @@ end
 
 always @(posedge clk) begin
     if (dm_write_en) begin
-        memory[data_address[11:0]] <= data_to_write;
+        memory[{4'b0, data_address[7:0]}] <= data_to_write;
     end
-    data_read <= memory[data_address[11:0]];
+    data_read <= memory[{4'b0, data_address[7:0]}];
     instruction_read <= memory[{4'b0, instruction_address[9:2]}];
 end
 
@@ -544,6 +550,59 @@ end
 
 endmodule
 
+module synckey(
+  input logic [19:0] in,
+  output logic [4:0] out,
+  output logic strobe,
+  input logic clk, rst
+);
+
+assign out = in[19] ? 5'd19:
+in[18] ? 5'd18: 
+in[17] ? 5'd17: 
+in[16] ? 5'd16: 
+in[15] ? 5'd15: 
+in[14] ? 5'd14: 
+in[13] ? 5'd13: 
+in[12] ? 5'd12: 
+in[11] ? 5'd11: 
+in[10] ? 5'd10: 
+in[9] ? 5'd9: 
+in[8] ? 5'd8: 
+in[7] ? 5'd7: 
+in[6] ? 5'd6: 
+in[5] ? 5'd5: 
+in[4] ? 5'd4: 
+in[3] ? 5'd3: 
+in[2] ? 5'd2: 
+in[1] ? 5'd1:  
+in[0] ? 5'd0: 5'd0;
+
+//assign strobe = |in;
+
+logic Q;
+always_ff @(posedge clk, posedge rst) begin
+
+  if (rst) begin
+    Q <= 1'b0;
+  end
+  else begin
+    Q <= |in;
+  end
+
+end
+
+always_ff @(posedge clk, posedge rst) begin
+  if (rst) begin
+    strobe <= 1'b0;
+  end
+  else begin
+    strobe <= Q;
+  end
+end 
+
+
+endmodule
 
 
 
