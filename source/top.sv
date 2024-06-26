@@ -444,11 +444,11 @@ module imm_generator (
 
     always_comb begin
         case (type_i)
-            3'd1 : imm_gen = {{20{inst[31]}}, inst[31:20]};
-            3'd2 : imm_gen = {{20{inst[31]}}, inst[31:25], inst[11:7]};
-            3'd3 : imm_gen = {{21{inst[31]}}, inst[7], inst[30:25], inst [11:8]};
-            3'd5 : imm_gen = {inst[31:12], 12'd0};
-            3'd4 : imm_gen = {{12{inst[31]}}, inst[19:12], inst[20], inst[31:21]};
+            3'd1 : imm_gen = {{20{inst[31]}}, inst[31:20]}; //I
+            3'd2 : imm_gen = {{20{inst[31]}}, inst[31:25], inst[11:7]}; //S
+            3'd3 : imm_gen = {{20{inst[31]}}, inst[7], inst[30:25], inst [11:8], 1'b0}; //SB
+            3'd5 : imm_gen = {inst[31:12], 12'd0}; //U
+            3'd4 : imm_gen = {{13{inst[31]}}, inst[19:12], inst[20], inst[30:21]}; //UJ
             default : imm_gen = '0;
         endcase
     end
@@ -473,7 +473,7 @@ logic [31:0] next_pc;
 logic [31:0] pc_4;
 logic [31:0] pc_add_immediate;
 
-assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + {generated_immediate[30:0],1'b0} + 4) : (current_pc + generated_immediate + 4); // program counter stuff
+assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + generated_immediate) : (current_pc + generated_immediate); // program counter stuff
 //assign pc_add_4 = auipc_in ? pc_add_immediate : (current_pc + 4);
 
 

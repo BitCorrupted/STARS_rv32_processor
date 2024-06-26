@@ -95,7 +95,14 @@ initial begin
     $dumpfile("sim.vcd");
     $dumpvars(0, tb);
 
+    reset= 0;
+    #6;
+
     reset_module;
+
+    inst = 32'b00000000101000000000010100010011;
+
+    inst = 32'b
 
 //     inst = 32'b00000000010100000000000100010011;
 
@@ -106,15 +113,9 @@ initial begin
 
 //     #6;
 //     inst = 32'b00000000000000000100010001100011;
-       inst = 32'h00000393;
-    #6 inst = 32'h00700863;
-    #6 inst = 32'h00500413;
-    #6 inst = 32'h00600413;
-    #6 inst = 32'h00700413;
-    #6 inst = 32'h00100413;
-    #6 inst = 32'h00d00413;
-    #6 inst = 32'h01600413;
-    #6 inst = 32'h01c00413; 
+
+#100;
+
 
     #5 $finish;
 end
@@ -450,11 +451,12 @@ module imm_generator (
 
     always_comb begin
         case (type_i)
-            3'd1 : imm_gen = {{20{inst[31]}}, inst[31:20]};
-            3'd2 : imm_gen = {{20{inst[31]}}, inst[31:25], inst[11:7]};
-            3'd3 : imm_gen = {{21{inst[31]}}, inst[7], inst[30:25], inst [11:8]};
-            3'd5 : imm_gen = {inst[31:12], 12'd0};
-            3'd4 : imm_gen = {{12{inst[31]}}, inst[19:12], inst[20], inst[31:21]};
+            3'd1 : imm_gen = {{20{inst[31]}}, inst[31:20]}; //I
+            3'd2 : imm_gen = {{20{inst[31]}}, inst[31:25], inst[11:7]}; //S
+            //3'd3 : imm_gen = {{21{inst[31]}}, inst[7], inst[30:25], inst [11:8]}; //SB
+            3'd3 : imm_gen = {{20{inst[31]}}, inst[7], inst[30:25], inst [11:8], 1'b0}; //SB
+            3'd5 : imm_gen = {inst[31:12], 12'd0}; //U
+            3'd4 : imm_gen = {{13{inst[31]}}, inst[19:12], inst[20], inst[30:21]}; //UJ
             default : imm_gen = '0;
         endcase
     end
@@ -479,7 +481,7 @@ logic [31:0] next_pc;
 logic [31:0] pc_4;
 logic [31:0] pc_add_immediate;
 
-assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + {generated_immediate[30:0],1'b0}) : (current_pc + {generated_immediate[30:0],1'b0}); // program counter stuff
+assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + generated_immediate) : (current_pc + generated_immediate); // program counter stuff
 //assign pc_add_4 = auipc_in ? pc_add_immediate : (current_pc + 4);
 
 
@@ -530,19 +532,77 @@ assign register_write = register_value;
 endmodule
 
 
+
 module ram (
     input logic clk, rst,
     input logic [31:0] data_address, // alu result to be read or written
     input logic [31:0] instruction_address, // no brainer, it is the insturction address
     input logic dm_read_en, dm_write_en, // enable ports for the read and enable
     input logic [31:0] data_to_write, // data to be written into memory
-    output logic [31:0] instruction_read, data_read // things we got from memory dude
+    output logic [31:0] instruction_read, data_read, // things we got from memory dude
+    output logic pc_enable
 );
 
 logic [31:0] memory [4095:0];
 
 initial begin
         $readmemh("cpu.mem", memory);
+end
+
+
+typedef enum logic {IDLE, WAIT} StateType;
+
+StateType state, next_state;
+
+
+always_ff @(posedge clk, posedge rst) begin
+
+  if (rst) begin
+
+    state <= IDLE;
+
+  end else begin
+    state <= next_state;
+  end
+
+end
+
+
+// assign data_out = memory[address_DM];
+
+// assign instr_out = memory[address_IM];
+
+
+always_comb begin
+
+  pc_enable = 1'b1;
+
+  next_state = state;
+
+  case (state)
+
+  IDLE: begin
+
+    if (dm_read_en | dm_write_en) begin
+
+      pc_enable = 1'b0;
+
+      next_state = WAIT;
+
+    end
+
+  end
+
+  WAIT: begin
+
+  // pc_enable = 1'b1;
+
+    next_state = IDLE;
+
+  end
+
+  endcase
+
 end
 
 always @(posedge clk) begin
@@ -610,6 +670,8 @@ end
 
 
 endmodule
+
+
 
 
 
