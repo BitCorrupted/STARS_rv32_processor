@@ -35,8 +35,16 @@ module top (
   input  logic txready, rxready
 );
 
-core core(.hz100(hz100), .reset(reset), .right(left), .pb(pb));
-
+wire [31:0] ssdata;
+core core(.hz100(hz100), .reset(reset), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
+ssdec ssd0(ssdata[3:0], 1'b1, ss0[6:0]);
+ssdec ssd1(ssdata[7:4], 1'b1, ss1[6:0]);
+ssdec ssd2(ssdata[11:8], 1'b1, ss2[6:0]);
+ssdec ssd3(ssdata[15:12], 1'b1, ss3[6:0]);
+ssdec ssd4(ssdata[19:16], 1'b1, ss4[6:0]);
+ssdec ssd5(ssdata[23:20], 1'b1, ss5[6:0]);
+ssdec ssd6(ssdata[27:24], 1'b1, ss6[6:0]);
+ssdec ssd7(ssdata[31:28], 1'b1, ss7[6:0]);
 
 
 endmodule
@@ -44,7 +52,9 @@ endmodule
 module core(
   input logic hz100, reset,
   input logic [20:0] pb, 
-  output logic [7:0] right
+  output logic [7:0] right,
+  output logic [7:0] left,
+  output logic [31:0] ssdata
 
 );
 
@@ -79,14 +89,17 @@ module core(
     logic pc_en;
     
     //logic [31:0] b_out_connect;
-   assign right = register_write_data[7:0];
+   assign right = inst[7:0];
+   assign left = program_counter[7:0];
+   wire [31:0]reg8_data;
+   assign ssdata = reg8_data;
 
   
   //this is a test
 
 
 logic keyclk;
-  synckey s1(.in({19'b0, pb[0]}), .out(), .strobe(keyclk), .clk(hz100), .rst(reset));
+  synckey s1(.in({19'b0, pb[9]}), .out(), .strobe(keyclk), .clk(hz100), .rst(reset));
 
   ram ram(.clk(keyclk), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
     .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read), .pc_enable(pc_en));
@@ -100,7 +113,7 @@ logic keyclk;
 
    pc pc(.pc_out(program_counter), .pc_add_4(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_immediate_jump(pc_absolute_jump_vec), .in_en(pc_en), .auipc_in(alu_mux_en), .clock(keyclk), .reset(reset));
 
-  register_file register_file(.clk(keyclk), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data));
+  register_file register_file(.clk(keyclk), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data), .reg8(reg8_data));
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data));
 
@@ -121,7 +134,8 @@ module register_file(
     input logic [4:0] regA_address, regB_address, rd_address,
     input logic register_write_en,
     input logic [31:0] register_write_data,
-    output logic [31:0] regA_data, regB_data
+    output logic [31:0] regA_data, regB_data,
+    output logic [31:0] reg8
 
 );
 
@@ -130,6 +144,7 @@ logic [31:0][31:0] next_registers_state;
 
 assign regA_data = registers_state[regA_address];
 assign regB_data = registers_state[regB_address];
+assign reg8 = registers_state[8];
 
 always_comb begin
     next_registers_state = registers_state;
@@ -663,6 +678,34 @@ end
 
 endmodule
 
+module ssdec(
+  input logic [3:0] in,
+  input logic enable,
+  output logic [6:0] out
+);
 
+always_comb begin
+  case({enable,in})
+    5'b10000: begin out = 7'b0111111; end
+    5'b10001: begin out = 7'b0000110; end
+    5'b10010: begin out = 7'b1011011; end
+    5'b10011: begin out = 7'b1001111; end
+    5'b10100: begin out = 7'b1100110; end
+    5'b10101: begin out = 7'b1101101; end
+    5'b10110: begin out = 7'b1111101; end
+    5'b10111: begin out = 7'b0000111; end
+    5'b11000: begin out = 7'b1111111; end
+    5'b11001: begin out = 7'b1100111; end
+    5'b11010: begin out = 7'b1110111; end
+    5'b11011: begin out = 7'b1111100; end
+    5'b11100: begin out = 7'b0111001; end
+    5'b11101: begin out = 7'b1011110; end
+    5'b11110: begin out = 7'b1111001; end
+    5'b11111: begin out = 7'b1110001; end
+    default: begin out = 7'b0000000; end
+  endcase
+end
+
+endmodule
 
 
