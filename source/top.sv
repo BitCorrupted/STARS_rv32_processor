@@ -89,7 +89,7 @@ module core(
     logic pc_en;
     
     //logic [31:0] b_out_connect;
-   assign right = inst[7:0];
+   assign right = result[7:0];
    assign left = program_counter[7:0];
    wire [31:0]reg8_data;
    assign ssdata = reg8_data;
@@ -612,7 +612,7 @@ always_comb begin
 
 end
 
-always @(posedge clk) begin
+always @(negedge clk) begin
     if (dm_write_en) begin
         memory[{4'b0, data_address[7:0]}] <= data_to_write;
     end
