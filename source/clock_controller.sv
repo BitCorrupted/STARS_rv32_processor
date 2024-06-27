@@ -9,10 +9,10 @@ reg enable_clock;
 
 always_ff @(negedge clock, posedge reset, negedge halt) begin
     if(reset)
-        enable_clock = 1;
-    else if(halt && ~clock)
         enable_clock = 0;
-    else
+    else if(halt)
+        enable_clock = 0;
+    else if(~clock)
         enable_clock = 1;
 end
 
