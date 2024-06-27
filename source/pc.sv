@@ -17,7 +17,7 @@ logic [31:0] pc_4;
 logic [31:0] pc_add_immediate;
 
 always_comb begin
-    pc_add_immediate = pc_immediate_jump ? pc_write_value + generated_immediate: current_pc + generated_immediate;
+    pc_add_immediate = pc_immediate_jump ? pc_write_value + generated_immediate + 4 : current_pc + generated_immediate + 4;
     pc_4 = current_pc + 4;
 
     next_pc = current_pc;
