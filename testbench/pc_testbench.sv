@@ -106,8 +106,8 @@ initial begin
 end
 
 task reset_module;
-       reset = 0;
-    #3 reset = 1;
+       reset = 1;
+    #3 reset = 0;
     #3;
 endtask
 
