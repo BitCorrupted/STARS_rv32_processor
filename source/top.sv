@@ -36,7 +36,7 @@ module top (
 );
 
 wire [31:0] ssdata;
-core core(.hz100(hz100), .reset(reset), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
+core core(.hz100(hz100), .reset(reset || pb[1]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
 ssdec ssd0(ssdata[3:0], 1'b1, ss0[6:0]);
 ssdec ssd1(ssdata[7:4], 1'b1, ss1[6:0]);
 ssdec ssd2(ssdata[11:8], 1'b1, ss2[6:0]);
@@ -242,7 +242,7 @@ always_comb begin
         b_out = 1'b1;
     end
     
-    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_zero_flag)&& (!ALU_overflow_flag)) begin
+    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_overflow_flag)) begin
       b_out = 1'b1;
     end
 
@@ -250,7 +250,7 @@ always_comb begin
         b_out = 1'b1;
     end
     
-    else if((branch_type == BGEU) && (!ALU_neg_flag) && (!ALU_zero_flag)&& (!ALU_overflow_flag)) begin
+    else if((branch_type == BGEU) && (!ALU_neg_flag) && (!ALU_overflow_flag)) begin
         b_out = 1'b1;
     end
 
