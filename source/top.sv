@@ -93,6 +93,7 @@ module core(
    assign left = program_counter[7:0];
    wire [31:0]reg8_data;
    assign ssdata = reg8_data;
+//    assign reset = pb[20];
 
   
   //this is a test
