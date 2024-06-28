@@ -12,7 +12,7 @@ typedef enum logic [3:0] {
     FOP_IMM = 8
     } fop_t;
 
-    typedef enum logic [2:0] {BEQ = 1, BNE = 2, BLT = 3, BGE = 4, BLTU = 5, BGEU = 6, NONE = 0} b_t;
+    typedef enum logic [2:0] {BEQ = 1, BNE = 2, BLT = 3, BGE = 4, BLTU = 5, BGEU = 6, JMP = 7, NONE = 0} b_t;
 
     //typedef enum logic [2:0] { I = 1, S = 2, SB = 3, UJ = 4, U = 5} inst_type;
     //inst_type [2:0] i_type;
@@ -254,6 +254,10 @@ always_comb begin
         b_out = 1'b1;
     end
 
+    else if(branch_type == JMP) begin
+        b_out = 1'b1;
+    end
+
     else if ((branch_type == NONE)) begin
         b_out = 1'b0;
 
@@ -265,8 +269,6 @@ always_comb begin
     end
 
 end
-
-
 
 endmodule
 
