@@ -17,17 +17,17 @@ logic [31:0] pc_add_4;
 logic [31:0] pc_add_immediate;
 
 always_comb begin
-    pc_add_immediate = pc_add_write_value ? (pc_write_value + generated_immediate) : (current_pc + {generated_immediate[30:0], 1'b0}); // program counter stuff
-    pc_add_4 = (current_pc + 4);
+    pc_add_immediate = (pc_add_write_value ? pc_write_value : current_pc) + generated_immediate; //pc_add_immediate is true for AUIPC and JALR
+    pc_add_4 = (current_pc + 4); //next instruction location
 end
 
-assign pc_add_out = auipc_in ? pc_add_immediate : pc_add_4;
+assign pc_add_out = auipc_in ? pc_add_immediate : pc_add_4; //AUIPC decision
 
 
 always_comb begin
     next_pc = current_pc;
-    if(in_en) begin
-        next_pc = (branch_decision || pc_add_write_value) ? pc_add_immediate : pc_add_4;
+    if(in_en) begin //if PC is enabled
+        next_pc = branch_decision ? pc_add_immediate : pc_add_4; //if branch or jump, then branch, else next instruction
     end
 end
 
