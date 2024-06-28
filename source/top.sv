@@ -418,8 +418,8 @@ always_comb begin
         3'd1: begin funct7 = 7'b0; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = 5'b0; rd = inst[11:7]; end
         3'b010: begin funct7 = 7'b0; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = inst[24:20]; rd = 5'b0; end
         3'd3: begin funct7 = 7'b0; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = inst[24:20]; rd = 5'b0; end
-        3'd5: begin funct7 = inst[31:25]; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = inst[24:20]; rd = inst[11:7]; end    
-        3'd4: begin funct7 = inst[31:25]; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = inst[24:20]; rd = inst[11:7]; end    
+        3'd5: begin funct7 = 7'b0; funct3 = 3'b0; rs1 = 5'b0; rs2 = 5'b0; rd = inst[11:7]; end    
+        3'd4: begin funct7 = 7'b0; funct3 = 3'b0; rs1 = 5'b0; rs2 = 5'b0; rd = inst[11:7]; end  
 
         default: begin funct7 = 7'b0; funct3 = 3'b0; rs1 = 5'b0; rs2 = 5'b0; rd = 5'b0; end
 
@@ -489,14 +489,14 @@ logic [31:0] next_pc;
 logic [31:0] pc_4;
 logic [31:0] pc_add_immediate;
 
-assign pc_add_immediate = pc_immediate_jump ? (pc_write_value + generated_immediate) : (current_pc + generated_immediate); // program counter stuff
+assign pc_add_immediate = pc_immediate_jump ? (current_pc + {generated_immediate[30:0], 1'b0}) : (current_pc + generated_immediate); // program counter stuff
 //assign pc_add_4 = auipc_in ? pc_add_immediate : (current_pc + 4);
 
 
 always_comb begin
     next_pc = current_pc;
     if(in_en) begin
-        next_pc = branch_decision ? pc_add_immediate : (current_pc + 4);
+        next_pc = (branch_decision || pc_immediate_jump) ? pc_add_immediate : (current_pc + 4);
     end
 end
 
