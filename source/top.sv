@@ -99,10 +99,15 @@ module core(
   //this is a test
 
 
-logic keyclk;
-  synckey s1(.in({19'b0, pb[9]}), .out(), .strobe(keyclk), .clk(hz100), .rst(reset));
 
-  ram ram(.clk(keyclk), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
+
+logic keyclk;
+logic keyclk1;
+  synckey s1(.in({19'b0, pb[9]}), .out(), .strobe(keyclk1), .clk(hz100), .rst(reset));
+
+  clock_controller clock_controller(.halt(1'b0), .cpu_clock(keyclk), .clock(keyclk1), .reset(reset));
+
+  ram ram(.clk(keyclk1), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
     .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read), .pc_enable(pc_en));
   
   decoder decoder(.inst(inst), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
@@ -726,4 +731,22 @@ end
 
 endmodule
 
+module clock_controller(
+    input logic halt,
+    output logic cpu_clock,
+    input logic clock,
+    input logic reset
+);
 
+reg enable_clock;
+
+always_ff @(negedge clock, posedge reset) begin
+    if(reset)
+      enable_clock = 0;
+    else 
+      enable_clock = ~halt;
+end
+
+assign cpu_clock = clock && enable_clock;
+
+endmodule
