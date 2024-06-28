@@ -5,13 +5,13 @@ logic reset = 1;
 logic [31:0] test_gen_i = 0;
 logic test_branch_decision = 0;
 logic [31:0] test_pc_write_value = 0;
-logic test_pc_immediate_jump = 0;
+logic test_pc_add_write_value = 0;
 logic test_in_en = 0;
 logic test_auipc_in = 0;
 logic [31:0] test_pc;
 logic [31:0] last_pc;
-logic [31:0] test_pc_4;
-pc testpc(test_pc, test_pc_4, test_gen_i, test_branch_decision, test_pc_write_value, test_pc_immediate_jump, test_in_en, test_auipc_in, clock, reset);
+logic [31:0] test_pc_add_out;
+pc testpc(test_pc, test_pc_add_out, test_gen_i, test_branch_decision, test_pc_write_value, test_pc_add_write_value, test_in_en, test_auipc_in, clock, reset);
 integer total_tests = 0;
 integer passed_tests = 0;
 
@@ -70,33 +70,34 @@ initial begin
         end
         last_pc = test_pc;
         test_branch_decision = $random > 80000000 ? 1 : 0;
-        test_pc_immediate_jump = $random > 80000000 ? 1 : 0;
-        test_auipc_in = test_pc_immediate_jump || test_branch_decision ? 0 : $random > 80000000 ? 1 : 0;
+        test_pc_add_write_value = $random > 80000000 ? 1 : 0;
+        test_auipc_in = ~test_pc_add_write_value || test_branch_decision ? 0 : $random > 80000000 ? 1 : 0;
         test_in_en = $random > 80000000 ? 1 : 0;
 
         test_gen_i = $random;
         test_gen_i = test_gen_i / 4;
         test_pc_write_value = $random;
-        #1;
-        if(test_auipc_in)
-            test_value(test_pc_4, last_pc + test_gen_i, "auipc error");
+        #2;
+        if(test_auipc_in) begin
+            test_value(test_pc_add_out, test_pc_write_value + test_gen_i, "auipc error");
+        end
         else
-            test_value(test_pc_4, last_pc + 4, "PC_4 Add 4 Error");
+            test_value(test_pc_add_out, last_pc + 4, "PC_4 Add 4 Error");
 
         pulse_clock;
         if(~test_in_en)
             test_value(test_pc, last_pc, "PC Write Disable Error");
         else begin
-            if(test_branch_decision) begin
-                if(test_pc_immediate_jump)
+            if(test_branch_decision || test_pc_add_write_value) begin
+                if(test_pc_add_write_value)
                     test_value(test_pc, test_pc_write_value + test_gen_i, "PC Abs. Jump Error");
                 else
-                    test_value(test_pc, last_pc + test_gen_i, "PC Rel. Jump Error");
+                    test_value(test_pc, last_pc + test_gen_i * 2, "PC Rel. Jump Error");
             end
             else
                 test_value(test_pc, last_pc + 4, "PC Non-Branch Error");
         end 
-        //$display("%d %d %d %d %d %d %d %D", test_pc, last_pc, test_pc_4, test_branch_decision, test_pc_immediate_jump, test_in_en, test_gen_i, test_pc_write_value);
+        //$display("%d %d %d %d %d %d %d %D", test_pc, last_pc, test_pc_add_out, test_branch_decision, test_pc_add_write_value, test_in_en, test_gen_i, test_pc_write_value);
     end
 
 
@@ -128,12 +129,12 @@ endtask
 endmodule
 
 module pc(
-    output [31:0] pc_out,
-    output [31:0] pc_add_4,
-    input [31:0] generated_immediate,
+    output logic [31:0] pc_out,
+    output logic [31:0] pc_add_out,
+    input logic [31:0] generated_immediate,
     input logic branch_decision,
-    input [31:0] pc_write_value,
-    input logic pc_immediate_jump,
+    input logic [31:0] pc_write_value,
+    input logic pc_add_write_value,
     input logic in_en,
     input logic auipc_in,
     input logic clock,
@@ -142,26 +143,30 @@ module pc(
 
 reg [31:0] current_pc;
 logic [31:0] next_pc;
-logic [31:0] pc_4;
+logic [31:0] pc_add_4;
 logic [31:0] pc_add_immediate;
 
 always_comb begin
-    pc_add_immediate = pc_immediate_jump ? pc_write_value + generated_immediate: current_pc + generated_immediate;
-    pc_4 = current_pc + 4;
-
-    next_pc = branch_decision ? pc_add_immediate : pc_4;
+    pc_add_immediate = pc_add_write_value ? (pc_write_value + generated_immediate) : (current_pc + {generated_immediate[30:0], 1'b0}); // program counter stuff
+    pc_add_4 = (current_pc + 4);
 end
-assign pc_add_4 = auipc_in ? pc_add_immediate : pc_4;
 
-always_ff @(posedge clock, negedge reset) begin
-    if(~reset) begin
-        current_pc = 0; //placeholder constant for initialization
+assign pc_add_out = auipc_in ? pc_add_immediate : pc_add_4;
+
+
+always_comb begin
+    next_pc = current_pc;
+    if(in_en) begin
+        next_pc = (branch_decision || pc_add_write_value) ? pc_add_immediate : pc_add_4;
+    end
+end
+
+always_ff @(posedge clock, posedge reset) begin
+    if(reset) begin
+        current_pc <= '0; //placeholder constant for initialization
     end
     else begin
-        if(in_en)
-            current_pc = next_pc;
-        else
-            current_pc = current_pc;
+        current_pc <= next_pc;
     end
 
 end
