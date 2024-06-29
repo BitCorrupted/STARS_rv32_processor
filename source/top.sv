@@ -130,7 +130,7 @@ logic keyclk1;
 
    //byte_imm_gen byte_immediate_generator (.b_out(b_out_connect), .imm_gen_byte(data_to_write));
 
-   ALU ALU(.rda(regA_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .C(C), .V(V), .imm_gen(imm_gen), .reg_b(regB_data), .alu_mux_en(alu_mux_en));
+   ALU ALU(.srda(regA_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .V(V), .imm_gen(imm_gen), .srdb(regB_data), .alu_mux_en(alu_mux_en), .rda_u(regA_data), .rdb_u(regB_data), .u(u));
 
    imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen(imm_gen));
   
@@ -182,16 +182,29 @@ end
 endmodule
 
 module ALU (
-    input logic signed [31:0] rda, imm_gen, reg_b,
+    input logic signed [31:0] srda, imm_gen, srdb,
+    input logic unsigned [31:0] rda_u, rdb_u,
     input logic [3:0] fop,
-    input logic alu_mux_en,
-    output logic signed [31:0] result,
-    output logic Z, N, C, V
+    input logic alu_mux_en, u,
+    output logic [31:0] result,
+    output logic Z, N, V
 );
+  logic [31:0] rda, rdb;
+  logic [31:0] rdb_mux;
 
-  logic [31:0] rdb;
-  assign rdb = (alu_mux_en) ? imm_gen : reg_b;
+  always_comb begin
+    if (!u) begin
+      rda = srda;
+      rdb_mux = srdb;
+    end
+  else begin
+      rda = rda_u;
+      rdb_mux = rdb_u;
+    end
+  end
 
+  // logic [31:0] rdb;
+  assign rdb = (alu_mux_en) ? imm_gen : rdb_mux;
 
     always_comb begin
         case (fop)
@@ -477,7 +490,6 @@ module imm_generator (
         endcase
     end
 endmodule
-
 
 module pc(
     output logic [31:0] pc_out,
