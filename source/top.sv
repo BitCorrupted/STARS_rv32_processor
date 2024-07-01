@@ -22,7 +22,7 @@ typedef enum logic [3:0] {
 
 module top (
   // I/O ports
-  input  logic hz100, reset,
+  input  logic hwclk, reset,
   input  logic [20:0] pb,
   output logic [7:0] left, right,
          ss7, ss6, ss5, ss4, ss3, ss2, ss1, ss0,
@@ -36,7 +36,7 @@ module top (
 );
 
 wire [31:0] ssdata;
-core core(.hz100(hz100), .reset(reset || pb[1]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
+core core(.hz100(hwclk), .reset(reset || pb[1]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
 ssdec ssd0(ssdata[3:0], 1'b1, ss0[6:0]);
 ssdec ssd1(ssdata[7:4], 1'b1, ss1[6:0]);
 ssdec ssd2(ssdata[11:8], 1'b1, ss2[6:0]);
@@ -90,10 +90,11 @@ module core(
     logic slt;
     logic u;
     //logic [31:0] b_out_connect;
-   assign right = result[7:0];
+  // assign right = result[7:0];
    assign left = program_counter[7:0];
    wire [31:0]reg8_data;
    assign ssdata = reg8_data;
+  assign right = reg8_data[7:0];
 //    assign reset = pb[20];
 
   
@@ -108,7 +109,7 @@ logic keyclk1;
 
   clock_controller clock_controller(.halt(1'b0), .cpu_clock(keyclk), .clock(keyclk1), .reset(reset));
 
-  ram ram(.clk(keyclk1), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
+  ram ram(.clk(hz100), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
     .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read), .pc_enable(pc_en));
   
   decoder decoder(.inst(inst), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
@@ -118,9 +119,9 @@ logic keyclk1;
 
   branch_logic branch_logic(.branch_type(branch_type), .ALU_neg_flag(N), .ALU_overflow_flag(V), .ALU_zero_flag(Z), .b_out(branch_choice));
 
-   pc pc(.pc_out(program_counter), .pc_add_out(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_add_write_value(pc_add_write_value), .in_en(pc_en), .auipc_in(alu_mux_en), .clock(keyclk), .reset(reset));
+   pc pc(.pc_out(program_counter), .pc_add_out(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_add_write_value(pc_add_write_value), .in_en(pc_en), .auipc_in(alu_mux_en), .clock(hz100), .reset(reset));
 
-  register_file register_file(.clk(keyclk), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data), .reg8(reg8_data));
+  register_file register_file(.clk(hz100), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data), .reg8(reg8_data));
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data), .slt(slt), .ALU_neg_flag(N), .ALU_overflow_flag(V));
 
