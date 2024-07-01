@@ -95,7 +95,8 @@ module core(
    wire [31:0]reg8_data;
    wire [31:0] reg7_data;
    assign ssdata = reg8_data;
-  assign right = reg8_data[7:0];
+   assign right[6] = pb[17];
+  //assign right = reg8_data[7:0];
 //    assign reset = pb[20];
 
   
