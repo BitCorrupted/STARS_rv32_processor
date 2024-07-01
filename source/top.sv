@@ -91,8 +91,9 @@ module core(
     logic u;
     //logic [31:0] b_out_connect;
   // assign right = result[7:0];
-   assign left = program_counter[7:0];
+  // assign left = program_counter[7:0];
    wire [31:0]reg8_data;
+   wire [31:0] reg7_data;
    assign ssdata = reg8_data;
   assign right = reg8_data[7:0];
 //    assign reset = pb[20];
@@ -121,11 +122,11 @@ logic keyclk1;
 
    pc pc(.pc_out(program_counter), .pc_add_out(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_add_write_value(pc_add_write_value), .in_en(pc_en), .auipc_in(alu_mux_en), .clock(hz100), .reset(reset));
 
-  register_file register_file(.clk(hz100), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data), .reg8(reg8_data));
+  register_file register_file(.clk(hz100), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data), .reg8(reg8_data), .reg7(reg7_data));
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data), .slt(slt), .ALU_neg_flag(N), .ALU_overflow_flag(V));
 
-  pwm p_time(.duty(32'd588000), .clk(hz100), .pwm_signal(right[0]));
+  pwm p_time(.duty(reg7_data), .clk(hz100), .pwm_signal(left[0]));
 
 
    byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .b_out(data_to_write));
@@ -144,7 +145,7 @@ module register_file(
     input logic register_write_en,
     input logic [31:0] register_write_data,
     output logic [31:0] regA_data, regB_data,
-    output logic [31:0] reg8
+    output logic [31:0] reg8, reg7
 
 );
 
@@ -154,6 +155,7 @@ logic [31:0][31:0] next_registers_state;
 assign regA_data = registers_state[regA_address];
 assign regB_data = registers_state[regB_address];
 assign reg8 = registers_state[8];
+assign reg7 = registers_state[7];
 
 always_comb begin
     next_registers_state = registers_state;
