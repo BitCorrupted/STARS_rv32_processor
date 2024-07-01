@@ -124,6 +124,7 @@ logic keyclk1;
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data), .slt(slt), .ALU_neg_flag(N), .ALU_overflow_flag(V));
 
+  pwm p_time(.duty(32'd588000), .clk(hz100), .pwm_signal(right[0]));
 
 
    byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .b_out(data_to_write));
@@ -761,5 +762,22 @@ always_ff @(negedge clock, posedge reset) begin
 end
 
 assign cpu_clock = clock && enable_clock;
+
+endmodule
+
+module pwm (
+  input [31:0] duty,
+  input clk,
+  output pwm_signal
+);
+
+  reg [31:0] counter = 0;
+  
+  always @ (posedge clk) begin
+    if (counter < 588000) counter <= counter + 1;
+    else counter <= 0;
+  end
+
+  assign pwm_signal = (counter < duty) ? 1:0;
 
 endmodule
