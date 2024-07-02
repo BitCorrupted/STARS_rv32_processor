@@ -4,7 +4,7 @@ module IO_mod_robot(
     input logic [31:0] data_from_mem,
     input logic [31:0] data_address, data_to_write,
     output logic [31:0] data_read,
-    output logic [31:0] IO_out, IO_pwm
+    output logic [31:0] IO_out, IO_pwm,
     input logic [31:0] IO_in
 );
  logic [31:0] output_reg, input_reg, pwm_reg;
@@ -73,7 +73,7 @@ always_ff @(posedge clk, posedge rst) begin
     else begin
         output_reg <= next_output_reg;
         input_reg <= next_input_reg;
-        pwm_reg <= next_pwm_reg
+        pwm_reg <= next_pwm_reg;
 
     end
 

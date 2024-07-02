@@ -21,7 +21,7 @@ module spi_controller(
     input logic reset
 );
 
-reg [2:0] counter;
+reg [31:0] counter;
 reg div_clock;
 reg [7:0] input_buffer;
 reg [7:0] output_buffer;
@@ -51,7 +51,7 @@ always_ff @(posedge clock, posedge reset) begin
     end
 end
 
-always_ff @(posedge div_clk) begin
+always_ff @(posedge div_clock) begin
     if(~(spi_mode[1] ^ spi_mode[0])) begin //data sampled at the rising edge
         input_buffer = {input_buffer[6:0],miso};
     end
@@ -62,7 +62,7 @@ always_ff @(posedge div_clk) begin
     end
 end
 
-always_ff @(negedge div_clk) begin
+always_ff @(negedge div_clock) begin
     if(spi_mode[1] ^ spi_mode[0]) begin //data sampled at the falling edge
         input_buffer = {input_buffer[6:0],miso};
     end
@@ -73,9 +73,8 @@ always_ff @(negedge div_clk) begin
     end
 
     counter = counter + 1;
-    if(counter[3] & counter [2] & counter[1]) begin
+    if(counter[2] & counter [1] & counter[0]) begin
         data_in_ready = 1;
-        spi_enable = 0;
     end
 end
 

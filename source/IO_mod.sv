@@ -1,5 +1,5 @@
 module IO_mod(
-    input logic clk, rst
+    input logic clk, rst,
     input logic write_mem, read_mem,
     input logic [31:0] data_from_mem,
     input logic [31:0] data_address, data_to_write,
@@ -17,25 +17,17 @@ module IO_mod(
         next_input_reg = input_reg;
 
         if (write_mem) begin
-
-
             if (data_address == 32'hFFFFFFFF) begin
                 next_enable_reg = data_to_write;
                 data_read = data_from_mem;
-            
-
-
             end
-
             else if(data_address == 32'hFFFFFFFD) begin
                 next_output_reg = data_to_write;
                 data_read = data_from_mem;
-
             end
         end
 
         else if(read_mem) begin
-
             if(data_address == 32'hFFFFFFFC) begin
                 next_input_reg = IO_in;
                 data_read = input_reg;
@@ -44,13 +36,7 @@ module IO_mod(
         
         else begin
             data_read = data_from_mem;
-
-
         end
-
-        
-
-
     end
 
     assign IO_out = output_reg;
