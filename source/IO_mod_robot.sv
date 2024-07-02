@@ -13,49 +13,45 @@ module IO_mod_robot(
 
  always_comb begin
 
-    assign input_reg = IO_in;
+    
 
     next_output_reg = output_reg;
-    next_input_reg = input_reg;
+    next_input_reg = IO_in;
     next_pwm_reg = pwm_reg;
 
     if (write_mem) begin
-        if (data_address == 32'hFFFFFFFF) begin
-            next_output_reg = data_to_write; 
-
-        end
-
-        else if(data_address == 32'hFFFFFFFD) begin 
-            next_pwm_reg = data_to_write;
-
-        end
-
-        else begin
-            next_output_reg = output_reg;
-            next_pwm_reg = pwm_reg;
-        end
-
+        case(data_address)
+            32'hFFFFFFFF: begin //GPIO output register
+                next_output_reg = data_to_write; 
+            end
+            32'hFFFFFFFD: begin //PWM register
+                next_pwm_reg = data_to_write;
+            end
+            default: begin //Other addresses
+                next_output_reg = output_reg;
+                next_pwm_reg = pwm_reg;
+            end
+        endcase
+        data_read = data_from_mem;
     end
 
     else if(read_mem) begin
-        if (data_address == 32'hFFFFFFFC) begin
-            data_read = input_reg;
-
-        end
-        
-        else begin
-            data_read = data_from_mem;
-            next_input_reg = input_reg; 
-
-        end
+        case(data_address)
+            32'hFFFFFFFC: begin //GPIO input register(?)
+                data_read = input_reg;
+            end
+            default: begin
+                data_read = data_from_mem;
+                next_input_reg = IO_in;
+            end
+        endcase
     end
 
     else begin
         next_output_reg = output_reg;
-        next_input_reg = input_reg;
+        next_input_reg = IO_in;
         next_pwm_reg = pwm_reg;
-
-
+        data_read = data_from_mem;
     end
 
  end
