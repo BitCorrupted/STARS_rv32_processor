@@ -4,7 +4,7 @@ module IO_mod_robot(
     input logic [31:0] data_from_mem,
     input logic [31:0] data_address, data_to_write,
     output logic [31:0] data_read,
-    output logic [31:0] IO_out, IO_pwm
+    output logic [31:0] IO_out, IO_pwm,
     input logic [31:0] IO_in
 );
  logic [31:0] output_reg, input_reg, pwm_reg;
@@ -13,26 +13,29 @@ module IO_mod_robot(
 
  always_comb begin
 
-    assign input_reg = IO_in;
+    
 
     next_output_reg = output_reg;
-    next_input_reg = input_reg;
+    next_input_reg = IO_in;
     next_pwm_reg = pwm_reg;
 
     if (write_mem) begin
         if (data_address == 32'hFFFFFFFF) begin
             next_output_reg = data_to_write; 
+            data_read = data_from_mem;
 
         end
 
         else if(data_address == 32'hFFFFFFFD) begin 
             next_pwm_reg = data_to_write;
+            data_read = data_from_mem;
 
         end
 
         else begin
             next_output_reg = output_reg;
             next_pwm_reg = pwm_reg;
+            data_read = data_from_mem;
         end
 
     end
@@ -45,15 +48,16 @@ module IO_mod_robot(
         
         else begin
             data_read = data_from_mem;
-            next_input_reg = input_reg; 
+            next_input_reg = IO_in; 
 
         end
     end
 
     else begin
         next_output_reg = output_reg;
-        next_input_reg = input_reg;
+        next_input_reg = IO_in;
         next_pwm_reg = pwm_reg;
+        data_read = data_from_mem;
 
 
     end
@@ -73,7 +77,7 @@ always_ff @(posedge clk, posedge rst) begin
     else begin
         output_reg <= next_output_reg;
         input_reg <= next_input_reg;
-        pwm_reg <= next_pwm_reg
+        pwm_reg <= next_pwm_reg;
 
     end
 
