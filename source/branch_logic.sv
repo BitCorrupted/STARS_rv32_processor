@@ -1,5 +1,5 @@
 
-typedef enum logic [2:0] {BEQ = 1, BNE = 2, BLT = 3, BGE = 4, BLTU = 5, BGEU = 6, NONE = 0} b_t;
+typedef enum logic [2:0] {BEQ = 1, BNE = 2, BLT = 3, BGE = 4, BLTU = 5, BGEU = 6, JMP = 7, NONE = 0} b_t;
 module branch_logic(
     input logic [2:0] branch_type,
     input logic ALU_neg_flag, ALU_zero_flag, ALU_overflow_flag,
@@ -21,7 +21,7 @@ always_comb begin
         b_out = 1'b1;
     end
     
-    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_zero_flag)&& (!ALU_overflow_flag)) begin
+    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_overflow_flag)) begin
       b_out = 1'b1;
     end
 
@@ -29,7 +29,11 @@ always_comb begin
         b_out = 1'b1;
     end
     
-    else if((branch_type == BGEU) && (!ALU_neg_flag) && (!ALU_zero_flag)&& (!ALU_overflow_flag)) begin
+    else if((branch_type == BGEU) && (!ALU_neg_flag) && (!ALU_overflow_flag)) begin
+        b_out = 1'b1;
+    end
+
+    else if(branch_type == JMP) begin
         b_out = 1'b1;
     end
 
@@ -44,7 +48,5 @@ always_comb begin
     end
 
 end
-
-
 
 endmodule
