@@ -36,7 +36,7 @@ module top (
 );
 
 wire [31:0] ssdata;
-core core(.hz100(hwclk), .reset(reset || pb[1]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
+core core(.hz100(hwclk), .reset(reset || pb[20]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
 ssdec ssd0(ssdata[3:0], 1'b1, ss0[6:0]);
 ssdec ssd1(ssdata[7:4], 1'b1, ss1[6:0]);
 ssdec ssd2(ssdata[11:8], 1'b1, ss2[6:0]);
@@ -97,6 +97,7 @@ module core(
    wire [31:0] IO_out, IO_pwm, IO_in;
    assign ssdata = reg8_data;
    assign right[7:0] = IO_out[7:0];
+   assign IO_in[7:0] = pb[7:0];
   //assign right = reg8_data[7:0];
 //    assign reset = pb[20];
 
