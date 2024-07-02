@@ -12,7 +12,7 @@ typedef enum logic [3:0] {
     FOP_IMM = 8
     } fop_t;
 
-    typedef enum logic [2:0] {BEQ = 1, BNE = 2, BLT = 3, BGE = 4, BLTU = 5, BGEU = 6, NONE = 0} b_t;
+    typedef enum logic [2:0] {BEQ = 1, BNE = 2, BLT = 3, BGE = 4, BLTU = 5, BGEU = 6, JMP = 7, NONE = 0} b_t;
 
     //typedef enum logic [2:0] { I = 1, S = 2, SB = 3, UJ = 4, U = 5} inst_type;
     //inst_type [2:0] i_type;
@@ -36,7 +36,7 @@ module top (
 );
 
 wire [31:0] ssdata;
-core core(.hz100(hwclk), .reset(reset), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
+core core(.hz100(hwclk), .reset(reset || pb[1]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
 ssdec ssd0(ssdata[3:0], 1'b1, ss0[6:0]);
 ssdec ssd1(ssdata[7:4], 1'b1, ss1[6:0]);
 ssdec ssd2(ssdata[11:8], 1'b1, ss2[6:0]);
@@ -63,7 +63,7 @@ module core(
     logic [3:0] alu_op; // alu operation
     logic [2:0] branch_type; // branch command
     logic reg_write_en, alu_mux_en, store_byte, 
-    mem_to_reg, pc_absolute_jump_vec, load_byte, read_next_pc,
+    mem_to_reg, pc_add_write_value, load_byte, read_next_pc,
     write_mem, read_mem;
 
     logic [31:0] inst; // full 32 bit instruction
@@ -87,19 +87,29 @@ module core(
     logic b_out;
     logic [31:0] data_to_write, data_read;
     logic pc_en;
-    
+    logic slt;
+    logic u;
     //logic [31:0] b_out_connect;
-   //assign right = result[7:0];
-   assign left = program_counter[7:0];
+  // assign right = result[7:0];
+  // assign left = program_counter[7:0];
    wire [31:0]reg8_data;
+   wire [31:0] reg7_data;
    assign ssdata = reg8_data;
+   assign right[6] = pb[17];
+  //assign right = reg8_data[7:0];
+//    assign reset = pb[20];
 
   
   //this is a test
 
 
+
+
 logic keyclk;
-  synckey s1(.in({19'b0, pb[9]}), .out(), .strobe(keyclk), .clk(hz100), .rst(reset));
+logic keyclk1;
+  synckey s1(.in({19'b0, pb[9]}), .out(), .strobe(keyclk1), .clk(hz100), .rst(reset));
+
+  clock_controller clock_controller(.halt(1'b0), .cpu_clock(keyclk), .clock(keyclk1), .reset(reset));
 
   ram ram(.clk(hz100), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
     .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read), .pc_enable(pc_en));
@@ -107,28 +117,26 @@ logic keyclk;
   decoder decoder(.inst(inst), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
 
    control_logic_unit control_logic(.i_type(i_type), .instruction(instruction), .alu_op(alu_op), .branch_type(branch_type), .reg_write_en(reg_write_en), .alu_mux_en(alu_mux_en), .store_byte(store_byte),
-  .mem_to_reg(mem_to_reg), .pc_absolute_jump_vec(pc_absolute_jump_vec), .load_byte(load_byte), .read_next_pc(read_next_pc), .write_mem(write_mem), .read_mem(read_mem));
+  .mem_to_reg(mem_to_reg), .pc_add_write_value(pc_add_write_value), .load_byte(load_byte), .read_next_pc(read_next_pc), .write_mem(write_mem), .read_mem(read_mem), .slt(slt), .u(u));
 
   branch_logic branch_logic(.branch_type(branch_type), .ALU_neg_flag(N), .ALU_overflow_flag(V), .ALU_zero_flag(Z), .b_out(branch_choice));
 
-   pc pc(.pc_out(program_counter), .pc_add_4(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_immediate_jump(pc_absolute_jump_vec), .in_en(pc_en), .auipc_in(alu_mux_en), .clock(hz100), .reset(reset));
+   pc pc(.pc_out(program_counter), .pc_add_out(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_add_write_value(pc_add_write_value), .in_en(pc_en), .auipc_in(alu_mux_en), .clock(hz100), .reset(reset));
 
-  register_file register_file(.clk(hz100), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data), .reg8(reg8_data));
+  register_file register_file(.clk(hz100), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data), .reg8(reg8_data), .reg7(reg7_data));
 
-   writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data));
+   writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data), .slt(slt), .ALU_neg_flag(N), .ALU_overflow_flag(V));
 
+  pwm p_time(.duty(reg7_data), .clk(hz100), .pwm_signal(left[0]));
 
 
    byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .b_out(data_to_write));
 
    //byte_imm_gen byte_immediate_generator (.b_out(b_out_connect), .imm_gen_byte(data_to_write));
 
-   ALU ALU(.rda(regA_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .C(C), .V(V), .imm_gen(imm_gen), .reg_b(regB_data), .alu_mux_en(alu_mux_en));
+   ALU ALU(.srda(regA_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .V(V), .imm_gen(imm_gen), .srdb(regB_data), .alu_mux_en(alu_mux_en), .rda_u(regA_data), .rdb_u(regB_data), .u(u));
 
    imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen(imm_gen));
-
-  pwm p_time(.duty(32'd588000), .clk(hz100), .pwm_signal(right[0]));
-
   
 endmodule
 
@@ -138,7 +146,7 @@ module register_file(
     input logic register_write_en,
     input logic [31:0] register_write_data,
     output logic [31:0] regA_data, regB_data,
-    output logic [31:0] reg8
+    output logic [31:0] reg8, reg7
 
 );
 
@@ -148,6 +156,7 @@ logic [31:0][31:0] next_registers_state;
 assign regA_data = registers_state[regA_address];
 assign regB_data = registers_state[regB_address];
 assign reg8 = registers_state[8];
+assign reg7 = registers_state[7];
 
 always_comb begin
     next_registers_state = registers_state;
@@ -178,16 +187,29 @@ end
 endmodule
 
 module ALU (
-    input logic signed [31:0] rda, imm_gen, reg_b,
+    input logic signed [31:0] srda, imm_gen, srdb,
+    input logic unsigned [31:0] rda_u, rdb_u,
     input logic [3:0] fop,
-    input logic alu_mux_en,
-    output logic signed [31:0] result,
-    output logic Z, N, C, V
+    input logic alu_mux_en, u,
+    output logic [31:0] result,
+    output logic Z, N, V
 );
+  logic [31:0] rda, rdb;
+  logic [31:0] rdb_mux;
 
-  logic [31:0] rdb;
-  assign rdb = (alu_mux_en) ? imm_gen : reg_b;
+  always_comb begin
+    if (!u) begin
+      rda = srda;
+      rdb_mux = srdb;
+    end
+  else begin
+      rda = rda_u;
+      rdb_mux = rdb_u;
+    end
+  end
 
+  // logic [31:0] rdb;
+  assign rdb = (alu_mux_en) ? imm_gen : rdb_mux;
 
     always_comb begin
         case (fop)
@@ -244,7 +266,7 @@ always_comb begin
         b_out = 1'b1;
     end
     
-    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_zero_flag)&& (!ALU_overflow_flag)) begin
+    else if((branch_type == BGE) && (!ALU_neg_flag) && (!ALU_overflow_flag)) begin
       b_out = 1'b1;
     end
 
@@ -252,7 +274,11 @@ always_comb begin
         b_out = 1'b1;
     end
     
-    else if((branch_type == BGEU) && (!ALU_neg_flag) && (!ALU_zero_flag)&& (!ALU_overflow_flag)) begin
+    else if((branch_type == BGEU) && (!ALU_neg_flag) && (!ALU_overflow_flag)) begin
+        b_out = 1'b1;
+    end
+
+    else if(branch_type == JMP) begin
         b_out = 1'b1;
     end
 
@@ -268,8 +294,6 @@ always_comb begin
 
 end
 
-
-
 endmodule
 
 module control_logic_unit(
@@ -278,106 +302,106 @@ module control_logic_unit(
     output logic [3:0] alu_op,
     output logic [2:0] branch_type,
     output logic reg_write_en, alu_mux_en, store_byte, 
-    mem_to_reg, pc_absolute_jump_vec, load_byte, read_next_pc,
-    write_mem, read_mem
+    mem_to_reg, pc_add_write_value, load_byte, read_next_pc,
+    write_mem, read_mem, slt, u
 );
 
 always_comb begin
-
+        u = 1'b0;
         case (instruction)
         // R-type
         17'b00000000000110011: begin alu_op = FOP_ADD; branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; write_mem = 1'b0; alu_mux_en = 1'b0; reg_write_en = 1'b1; store_byte = 1'b0;
-        load_byte = 1'b0; pc_absolute_jump_vec = 1'b0; read_next_pc = 1'b0;end
+        load_byte = 1'b0; pc_add_write_value = 1'b0; read_next_pc = 1'b0; slt = 1'b0; end
         17'b01000000000110011: begin alu_op = FOP_SUB; branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; write_mem = 1'b0; alu_mux_en = 1'b0; reg_write_en = 1'b1; store_byte = 1'b0;
-        load_byte = 1'b0; pc_absolute_jump_vec = 1'b0; read_next_pc = 1'b0;end
+        load_byte = 1'b0; pc_add_write_value = 1'b0; read_next_pc = 1'b0;slt = 1'b0;end
         17'b00000001000110011: begin alu_op = FOP_XOR; branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; write_mem = 1'b0; alu_mux_en = 1'b0; reg_write_en = 1'b1; store_byte = 1'b0;
-        load_byte = 1'b0; pc_absolute_jump_vec = 1'b0; read_next_pc = 1'b0;end
+        load_byte = 1'b0; pc_add_write_value = 1'b0; read_next_pc = 1'b0;slt = 1'b0;end
         17'b00000001100110011: begin alu_op = FOP_OR; branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; write_mem = 1'b0; alu_mux_en = 1'b0; reg_write_en = 1'b1; store_byte = 1'b0;
-        load_byte = 1'b0; pc_absolute_jump_vec = 1'b0; read_next_pc = 1'b0;end
+        load_byte = 1'b0; pc_add_write_value = 1'b0; read_next_pc = 1'b0;slt = 1'b0;end
         17'b00000001110110011: begin alu_op = FOP_AND; branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; write_mem = 1'b0; alu_mux_en = 1'b0; reg_write_en = 1'b1; store_byte = 1'b0;
-        load_byte = 1'b0; pc_absolute_jump_vec = 1'b0; read_next_pc = 1'b0;end
+        load_byte = 1'b0; pc_add_write_value = 1'b0; read_next_pc = 1'b0;slt = 1'b0;end
         17'b00000000010110011: begin alu_op = FOP_SLL; branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; write_mem = 1'b0; alu_mux_en = 1'b0; reg_write_en = 1'b1; store_byte = 1'b0;
-        load_byte = 1'b0; pc_absolute_jump_vec = 1'b0; read_next_pc = 1'b0;end
+        load_byte = 1'b0; pc_add_write_value = 1'b0; read_next_pc = 1'b0;slt = 1'b0;end
         17'b00000001010110011: begin alu_op = FOP_SRL; branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; write_mem = 1'b0; alu_mux_en = 1'b0; reg_write_en = 1'b1; store_byte = 1'b0;
-        load_byte = 1'b0; pc_absolute_jump_vec = 1'b0; read_next_pc = 1'b0;end
+        load_byte = 1'b0; pc_add_write_value = 1'b0; read_next_pc = 1'b0;slt = 1'b0;end
         17'b01000001010110011: begin alu_op = FOP_SRA; branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; write_mem = 1'b0; alu_mux_en = 1'b0; reg_write_en = 1'b1; store_byte = 1'b0;
-        load_byte = 1'b0; pc_absolute_jump_vec = 1'b0; read_next_pc = 1'b0;end
+        load_byte = 1'b0; pc_add_write_value = 1'b0; read_next_pc = 1'b0;slt = 1'b0;end
         17'b00000000100110011: begin alu_op = FOP_SUB; branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; write_mem = 1'b0; alu_mux_en = 1'b0; reg_write_en = 1'b1; store_byte = 1'b0;
-        load_byte = 1'b0; pc_absolute_jump_vec = 1'b0; read_next_pc = 1'b0;end //slt
+        load_byte = 1'b0; pc_add_write_value = 1'b0; read_next_pc = 1'b0;slt = 1'b1;end //slt
         17'b00000000110110011: begin alu_op = FOP_SUB; branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; write_mem = 1'b0; alu_mux_en = 1'b0; reg_write_en = 1'b1; store_byte = 1'b0;
-        load_byte = 1'b0; pc_absolute_jump_vec = 1'b0; read_next_pc = 1'b0;end //sltu
+        load_byte = 1'b0; pc_add_write_value = 1'b0; read_next_pc = 1'b0;slt = 1'b1; u = 1'b1; end //sltu
 
         17'b00000000000000011: begin branch_type = 3'd0; read_mem = 1'b1; mem_to_reg = 1'b1; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b1; end //lb
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b1; slt = 1'b0;end //lb
 
         17'b00000000100000011: begin branch_type = 3'd0; read_mem = 1'b1; mem_to_reg = 1'b1; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //lw
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //lw
 
         17'b00000000000010011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //addi
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //addi
 
         17'b00000000010010011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SLL; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //slli
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0;slt = 1'b0; end //slli
 
         17'b00000000100010011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //slti
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b1;end //slti
 
         17'b00000000110010011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //sltiu
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b1; u = 1'b1; end //sltiu
 
         17'b00000001000010011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_XOR; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //xori
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //xori
 
         17'b00000001010010011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SRL; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //srli
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //srli
 
         17'b01000001010010011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SRA; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //srai
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //srai
 
         17'b00000001100010011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_OR; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //ori
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //ori
 
         17'b00000001110010011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_AND; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //andi
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //andi
 
         17'b00000000000100011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b1; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b1; load_byte = 1'b0; end //sb
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b1; load_byte = 1'b0; slt = 1'b0;end //sb
 
         17'b00000000100100011: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b1; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //sw
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0;slt = 1'b0; end //sw
 
         17'b00000000000110111: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_IMM; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //lui
+        reg_write_en = 1'b1; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //lui
 
         17'b00000000000010111: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b1; 
-        reg_write_en = 1'b1; read_next_pc = 1'b1; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //auipc
+        reg_write_en = 1'b1; read_next_pc = 1'b1; pc_add_write_value = 1'b1; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //auipc
 
         17'b00000000001100011: begin branch_type = BEQ; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
-        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //beq
+        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //beq
 
         17'b00000000011100011: begin branch_type = BNE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
-        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bne
+        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //bne
 
         17'b00000001001100011: begin branch_type = BLT; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
-        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //blt
+        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0;slt = 1'b0; end //blt
 
         17'b00000001011100011: begin branch_type = BGE; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
-        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bge
+        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0;slt = 1'b0; end //bge
 
         17'b00000001101100011: begin branch_type = BLTU; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
-        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bltu
+        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0; u = 1'b1; end //bltu
 
         17'b00000001111100011: begin branch_type = BGEU; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_SUB; write_mem = 1'b0; alu_mux_en = 1'b0; 
-        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end //bgeu
+        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0;slt = 1'b0; u = 1'b1; end //bgeu
 
-        17'b00000000001100111: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b0; 
-        reg_write_en = 1'b1; read_next_pc = 1'b1; pc_absolute_jump_vec = 1'b1; store_byte = 1'b0; load_byte = 1'b0; end //jalr
+        17'b00000000001100111: begin branch_type = JMP; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        reg_write_en = 1'b1; read_next_pc = 1'b1; pc_add_write_value = 1'b1; store_byte = 1'b0; load_byte = 1'b0; slt = 1'b0;end //jalr
 
-        17'b00000000001101111: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b0; 
-        reg_write_en = 1'b1; read_next_pc = 1'b1; pc_absolute_jump_vec = 1'b1; store_byte = 1'b0; load_byte = 1'b0; end //jal
+        17'b00000000001101111: begin branch_type = JMP; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b0; 
+        reg_write_en = 1'b1; read_next_pc = 1'b1; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0;slt = 1'b0; end //jal
 
         default: begin branch_type = 3'd0; read_mem = 1'b0; mem_to_reg = 1'b0; alu_op = FOP_ADD; write_mem = 1'b0; alu_mux_en = 1'b0; 
-        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_absolute_jump_vec = 1'b0; store_byte = 1'b0; load_byte = 1'b0; end
+        reg_write_en = 1'b0; read_next_pc = 1'b0; pc_add_write_value = 1'b0; store_byte = 1'b0; load_byte = 1'b0;slt = 1'b0; end
         
 
         endcase
@@ -422,7 +446,7 @@ always_comb begin
         3'd3: begin funct7 = 7'b0; funct3 = inst[14:12]; rs1 = inst[19:15]; rs2 = inst[24:20]; rd = 5'b0; end
         3'd5: begin funct7 = 7'b0; funct3 = 3'b0; rs1 = 5'b0; rs2 = 5'b0; rd = inst[11:7]; end    
         3'd4: begin funct7 = 7'b0; funct3 = 3'b0; rs1 = 5'b0; rs2 = 5'b0; rd = inst[11:7]; end  
-        
+
         default: begin funct7 = 7'b0; funct3 = 3'b0; rs1 = 5'b0; rs2 = 5'b0; rd = 5'b0; end
 
     endcase 
@@ -466,20 +490,19 @@ module imm_generator (
             3'd2 : imm_gen = {{20{inst[31]}}, inst[31:25], inst[11:7]}; //S
             3'd3 : imm_gen = {{20{inst[31]}}, inst[7], inst[30:25], inst [11:8], 1'b0}; //SB
             3'd5 : imm_gen = {inst[31:12], 12'd0}; //U
-            3'd4 : imm_gen = {{13{inst[31]}}, inst[19:12], inst[20], inst[30:21]}; //UJ
+            3'd4 : imm_gen = {{12{inst[31]}}, inst[19:12], inst[20], inst[30:21],1'b0}; //UJ
             default : imm_gen = '0;
         endcase
     end
 endmodule
 
-
 module pc(
     output logic [31:0] pc_out,
-    output logic [31:0] pc_add_4,
+    output logic [31:0] pc_add_out,
     input logic [31:0] generated_immediate,
     input logic branch_decision,
     input logic [31:0] pc_write_value,
-    input logic pc_immediate_jump,
+    input logic pc_add_write_value,
     input logic in_en,
     input logic auipc_in,
     input logic clock,
@@ -488,17 +511,21 @@ module pc(
 
 reg [31:0] current_pc;
 logic [31:0] next_pc;
-logic [31:0] pc_4;
+logic [31:0] pc_add_4;
 logic [31:0] pc_add_immediate;
 
-assign pc_add_immediate = pc_immediate_jump ? (current_pc + {generated_immediate[30:0], 1'b0}) : (current_pc + generated_immediate); // program counter stuff
-//assign pc_add_4 = auipc_in ? pc_add_immediate : (current_pc + 4);
+always_comb begin
+    pc_add_immediate = (pc_add_write_value ? pc_write_value : current_pc) + generated_immediate; //pc_add_immediate is true for AUIPC and JALR
+    pc_add_4 = (current_pc + 4); //next instruction location
+end
+
+assign pc_add_out = auipc_in ? pc_add_immediate : pc_add_4; //AUIPC decision
 
 
 always_comb begin
     next_pc = current_pc;
-    if(in_en) begin
-        next_pc = (branch_decision || pc_immediate_jump) ? pc_add_immediate : (current_pc + 4);
+    if(in_en) begin //if PC is enabled
+        next_pc = branch_decision ? pc_add_immediate : pc_add_4; //if branch or jump, then branch, else next instruction
     end
 end
 
@@ -522,6 +549,7 @@ module writeback(
     input logic mem_to_reg,
     input logic load_byte,
     input logic read_pc_4,
+    input logic slt, ALU_neg_flag, ALU_overflow_flag,
     output logic [31:0] register_write
 );
 
@@ -530,10 +558,20 @@ logic [31:0] register_value;
 always_comb begin
     if(read_pc_4)
         register_value = pc_4_value;
-    else if(~mem_to_reg)
-        register_value = ALU_value;
+    
     else if(load_byte)
         register_value = {24'b0,memory_value[7:0]};
+
+    else if(slt) begin
+        if ((ALU_neg_flag) && (!ALU_overflow_flag)) begin
+            register_value = 32'd1;
+        end
+        else begin
+            register_value = 32'b0;
+        end
+    end
+    else if(~mem_to_reg)
+        register_value = ALU_value;
     else
         register_value = memory_value;
 end
@@ -708,6 +746,26 @@ always_comb begin
     default: begin out = 7'b0000000; end
   endcase
 end
+
+endmodule
+
+module clock_controller(
+    input logic halt,
+    output logic cpu_clock,
+    input logic clock,
+    input logic reset
+);
+
+reg enable_clock;
+
+always_ff @(negedge clock, posedge reset) begin
+    if(reset)
+      enable_clock = 0;
+    else 
+      enable_clock = ~halt;
+end
+
+assign cpu_clock = clock && enable_clock;
 
 endmodule
 
