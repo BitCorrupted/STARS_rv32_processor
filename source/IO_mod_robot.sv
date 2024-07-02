@@ -20,37 +20,33 @@ module IO_mod_robot(
     next_pwm_reg = pwm_reg;
 
     if (write_mem) begin
-        if (data_address == 32'hFFFFFFFF) begin
-            next_output_reg = data_to_write; 
-            data_read = data_from_mem;
-
-        end
-
-        else if(data_address == 32'hFFFFFFFD) begin 
-            next_pwm_reg = data_to_write;
-            data_read = data_from_mem;
-
-        end
-
-        else begin
-            next_output_reg = output_reg;
-            next_pwm_reg = pwm_reg;
-            data_read = data_from_mem;
-        end
-
+        case(data_address)
+            32'hFFFFFFFF: begin //GPIO output register
+                next_output_reg = data_to_write; 
+                data_read = data_from_mem;    
+            end
+            32'hFFFFFFFD: begin //PWM register
+                next_pwm_reg = data_to_write;
+                data_read = data_from_mem;
+            end
+            default: begin //Other addresses
+                next_output_reg = output_reg;
+                next_pwm_reg = pwm_reg;
+                data_read = data_from_mem;
+            end
+        endcase
     end
 
     else if(read_mem) begin
-        if (data_address == 32'hFFFFFFFC) begin
-            data_read = input_reg;
-
-        end
-        
-        else begin
-            data_read = data_from_mem;
-            next_input_reg = IO_in; 
-
-        end
+        case(data_address)
+            32'hFFFFFFFC: begin //GPIO input register(?)
+                data_read = input_reg;
+            end
+            default: begin
+                data_read = data_from_mem;
+                next_input_reg = IO_in;
+            end
+        endcase
     end
 
     else begin
@@ -58,8 +54,6 @@ module IO_mod_robot(
         next_input_reg = IO_in;
         next_pwm_reg = pwm_reg;
         data_read = data_from_mem;
-
-
     end
 
  end
