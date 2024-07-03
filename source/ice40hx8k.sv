@@ -1,4 +1,3 @@
-
 module ice40hx8k (hwclk,pb,ss7,ss6,ss5,ss4,ss3,ss2,ss1,ss0,left,right,red,green,blue,
                   Rx, Tx, CTSn, DCDn);
     input hwclk;

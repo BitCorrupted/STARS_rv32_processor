@@ -22,7 +22,7 @@ typedef enum logic [3:0] {
 
 module top (
   // I/O ports
-  input  logic hwclk, reset,
+  input  logic serclk, reset,
   input  logic [20:0] pb,
   output logic [7:0] left, right,
          ss7, ss6, ss5, ss4, ss3, ss2, ss1, ss0,
@@ -36,7 +36,7 @@ module top (
 );
 
 wire [31:0] ssdata;
-core core(.hz100(hwclk), .reset(reset || pb[20]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
+core core(.hz100(serclk), .reset(reset || pb[20]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
 ssdec ssd0(ssdata[3:0], 1'b1, ss0[6:0]);
 ssdec ssd1(ssdata[7:4], 1'b1, ss1[6:0]);
 ssdec ssd2(ssdata[11:8], 1'b1, ss2[6:0]);
@@ -94,7 +94,7 @@ module core(
   // assign left = program_counter[7:0];
    wire [31:0]reg8_data;
    wire [31:0] reg7_data;
-   wire [31:0] IO_out, IO_pwm, IO_in;
+   wire [31:0] IO_out, IO_pwm, IO_in, IO_pwm2;
    assign ssdata = reg8_data;
    assign right[7:0] = IO_out[7:0];
    assign IO_in[7:0] = pb[7:0];
@@ -129,10 +129,11 @@ logic keyclk1;
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data), .slt(slt), .ALU_neg_flag(N), .ALU_overflow_flag(V));
 
-  pwm p_time(.duty(IO_pwm), .clk(hz100), .pwm_signal(left[0]));
+  pwm p_time(.duty(IO_pwm), .clk(hz100), .pwm_signal(left[1]));
+  pwm p_time2(.duty(IO_pwm2), .clk(hz100), .pwm_signal(left[0]));
 
   IO_mod_robot IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
-  .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .data_read(data_read));
+  .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .IO_pwm2(IO_pwm2), .data_read(data_read));
 
 
    byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .b_out(data_to_write));
@@ -167,7 +168,7 @@ always_comb begin
     next_registers_state = registers_state;
 
 
-    if (register_write_en && (rd_address != 5'b0) && (rd_address != 5'd29) && (rd_address != 5'd30) && (rd_address != 5'd31)) begin
+    if (register_write_en && (rd_address != 5'b0) && (rd_address != 5'd29) && (rd_address != 5'd30) && (rd_address != 5'd31) && (rd_address != 5'd28)) begin
         next_registers_state[rd_address] = register_write_data;
     end
 end
@@ -183,6 +184,7 @@ always_ff @(posedge clk, posedge rst) begin
         registers_state[29] <= 32'hFFFFFFFC;
         registers_state[30] <= 32'hFFFFFFFD;
         registers_state[31] <= 32'hFFFFFFFF;
+        registers_state[28] <= 32'hFFFFFFFE;
 
     end
 
@@ -300,6 +302,7 @@ always_comb begin
         b_out = 1'b0;
 
     end
+    
 
 end
 
@@ -793,6 +796,7 @@ module pwm (
 
   assign pwm_signal = (counter < duty) ? 1:0;
 
+
 endmodule
 
 module IO_mod_robot(
@@ -801,83 +805,55 @@ module IO_mod_robot(
     input logic [31:0] data_from_mem,
     input logic [31:0] data_address, data_to_write,
     output logic [31:0] data_read,
-    output logic [31:0] IO_out, IO_pwm,
+    output logic [31:0] IO_out, IO_pwm, IO_pwm2,
     input logic [31:0] IO_in
 );
- logic [31:0] output_reg, input_reg, pwm_reg;
- logic [31:0] next_output_reg, next_input_reg, next_pwm_reg;
+ logic [31:0] output_reg, input_reg, pwm_reg, pwm2_reg;
+ logic [31:0] next_output_reg, next_input_reg, next_pwm_reg, next_pwm2_reg;
 
 
- always_comb begin
+ 
 
-    
-
-    next_output_reg = output_reg;
-    next_input_reg = IO_in;
-    next_pwm_reg = pwm_reg;
-
-    if (write_mem) begin
-        if (data_address == 32'hFFFFFFFF) begin
-            next_output_reg = data_to_write; 
-            data_read = data_from_mem;
-
-        end
-
-        else if(data_address == 32'hFFFFFFFD) begin 
-            next_pwm_reg = data_to_write;
-            data_read = data_from_mem;
-
-        end
-
-        else begin
-            next_output_reg = output_reg;
-            next_pwm_reg = pwm_reg;
-            data_read = data_from_mem;
-        end
-
-    end
-
-    else if(read_mem) begin
-        if (data_address == 32'hFFFFFFFC) begin
-            data_read = input_reg;
-
-        end
-        
-        else begin
-            data_read = data_from_mem;
-            next_input_reg = IO_in; 
-
-        end
-    end
-
-    else begin
-        next_output_reg = output_reg;
-        next_input_reg = IO_in;
-        next_pwm_reg = pwm_reg;
-        data_read = data_from_mem;
-
-
-    end
-
- end
-
- assign IO_out = output_reg;
- assign IO_pwm = pwm_reg;
 
 always_ff @(posedge clk, posedge rst) begin
     if (rst) begin
-        output_reg <= '0;
+        IO_out <= '0;
         input_reg <= '0;
-        pwm_reg <= '0;
+        IO_pwm <= '0;
+        IO_pwm2 <= '0;
     end
 
     else begin
-        output_reg <= next_output_reg;
-        input_reg <= next_input_reg;
-        pwm_reg <= next_pwm_reg;
+        IO_out <= next_output_reg;
+        input_reg <= IO_in;
+        IO_pwm <= next_pwm_reg;
+        IO_pwm2 <= next_pwm2_reg;
 
     end
 
 end
+
+always_comb begin
+
+    next_output_reg = IO_out;
+    next_pwm_reg = IO_pwm;
+    next_pwm2_reg = IO_pwm2;
+    data_read = data_from_mem;
+    case(data_address)
+        32'hFFFFFFFF: begin
+           next_output_reg = (write_mem) ? data_to_write : IO_out;
+        end
+        32'hFFFFFFFD: begin
+           next_pwm_reg = (write_mem) ? data_to_write : IO_pwm;
+        end
+        32'hFFFFFFFE: begin
+           next_pwm2_reg = (write_mem) ? data_to_write : IO_pwm2;
+        end
+        32'hFFFFFFFC: begin
+           data_read = (read_mem) ? input_reg : data_from_mem;
+        end
+    endcase
+end
+
 
 endmodule
