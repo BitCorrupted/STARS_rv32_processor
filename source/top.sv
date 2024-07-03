@@ -132,8 +132,10 @@ logic keyclk1;
   pwm p_time(.duty(IO_pwm), .clk(hz100), .pwm_signal(left[0]));
 
   IO_mod_robot IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
-  .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .data_read(data_read));
+  .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .data_read(data_read), .spi_input(spi_data_in), .spi_clkdiv_out(spi_clkdiv), .spi_output(spi_data_out));
 
+  wire [31:0] spi_clkdiv, spi_data_out, spi_data_in;
+  spi_controller spi_block(.clkdiv(spi_clkdiv), .spi_data_out(spi_data_out[7:0]), .data_out_ready(spi_data_out[8]), .spi_data_in(spi_data_in[7:0]), .data_in_ready(spi_data_in[8]), .spi_enable(spi_data_in[9]), .spi_mode(spi_data_in[11:10]), .sclk(left[7]), .miso(left[6]), .mosi(left[5]), .clock(hz100), .reset(reset));
 
    byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .b_out(data_to_write));
 
@@ -802,10 +804,13 @@ module IO_mod_robot(
     input logic [31:0] data_address, data_to_write,
     output logic [31:0] data_read,
     output logic [31:0] IO_out, IO_pwm,
-    input logic [31:0] IO_in
+    input logic [31:0] IO_in,
+    input logic [31:0] spi_input,
+    output logic [31:0] spi_clkdiv_out,
+    output logic [31:0] spi_output
 );
- logic [31:0] output_reg, input_reg, pwm_reg;
- logic [31:0] next_output_reg, next_input_reg, next_pwm_reg;
+ logic [31:0] output_reg, input_reg, pwm_reg, spi_out, spi_in, spi_clkdiv;
+ logic [31:0] next_output_reg, next_input_reg, next_pwm_reg, next_spi_out, next_spi_in, next_spi_clkdiv;
 
 
  always_comb begin
@@ -815,6 +820,9 @@ module IO_mod_robot(
     next_output_reg = output_reg;
     next_input_reg = IO_in;
     next_pwm_reg = pwm_reg;
+    next_spi_out = spi_out;
+    next_spi_in = spi_in;
+    next_spi_clkdiv = spi_clkdiv;
 
     if (write_mem) begin
         case(data_address)
@@ -826,9 +834,19 @@ module IO_mod_robot(
                 next_pwm_reg = data_to_write;
                 data_read = data_from_mem;
             end
+            32'h31FFFFFF: begin //SPI output register
+                next_spi_out = data_to_write;
+                data_read = data_from_mem;
+            end
+            32'h31FFFFE: begin //SPI clock divider register
+                next_spi_clkdiv = data_to_write;
+                data_read = data_from_mem;
+            end
             default: begin //Other addresses
                 next_output_reg = output_reg;
                 next_pwm_reg = pwm_reg;
+                next_spi_in = spi_in;
+                next_spi_clkdiv = spi_clkdiv;
                 data_read = data_from_mem;
             end
         endcase
@@ -838,6 +856,9 @@ module IO_mod_robot(
         case(data_address)
             32'hFFFFFFFC: begin //GPIO input register(?)
                 data_read = input_reg;
+            end
+            32'h31FFFFFD: begin //SPI input register
+                data_read = spi_input;
             end
             default: begin
                 data_read = data_from_mem;
@@ -850,6 +871,9 @@ module IO_mod_robot(
         next_output_reg = output_reg;
         next_input_reg = IO_in;
         next_pwm_reg = pwm_reg;
+        next_spi_out = spi_out;
+        next_spi_in = spi_in;
+        next_spi_clkdiv = spi_clkdiv;
         data_read = data_from_mem;
     end
 
@@ -857,6 +881,9 @@ module IO_mod_robot(
 
  assign IO_out = output_reg;
  assign IO_pwm = pwm_reg;
+
+ assign spi_clkdiv_out = spi_clkdiv;
+ assign spi_output = spi_out;
 
 always_ff @(posedge clk, posedge rst) begin
     if (rst) begin
@@ -869,9 +896,93 @@ always_ff @(posedge clk, posedge rst) begin
         output_reg <= next_output_reg;
         input_reg <= next_input_reg;
         pwm_reg <= next_pwm_reg;
-
+        spi_out <= next_spi_out;
+        spi_in <= next_spi_in;
+        spi_clkdiv <= next_spi_clkdiv;
     end
 
+end
+
+endmodule
+
+module spi_controller(
+    input logic [31:0] clkdiv,
+
+    input [7:0] spi_data_out, 
+    input logic data_out_ready,
+
+    output [7:0] spi_data_in,
+    output logic data_in_ready,
+
+    input logic spi_enable,
+    input [1:0] spi_mode,
+    
+    //SPI signals
+    output logic sclk,
+    input logic miso,
+    output logic mosi,
+
+    //CS will be taken care of by GPIO module(s)
+
+    input logic clock,
+    input logic reset
+);
+
+reg [31:0] counter;
+reg div_clock;
+reg [7:0] input_buffer;
+reg [7:0] output_buffer;
+reg [2:0] bit_counter;
+reg output_bit;
+
+always_ff @(posedge data_out_ready) begin
+    output_buffer = spi_data_out;
+end
+
+always_ff @(posedge clock, posedge reset) begin
+    if(reset) begin
+        counter = 0;
+        div_clock = 0;
+        input_buffer = 0;
+        output_buffer = 0;
+    end
+    else begin
+        if(spi_enable) begin
+            if(counter == clkdiv) begin
+                counter = 0;
+                div_clock = ~div_clock;
+            end
+            else
+                counter = counter + 1;
+        end
+    end
+end
+
+always_ff @(posedge div_clock) begin
+    if(~(spi_mode[1] ^ spi_mode[0])) begin //data sampled at the rising edge
+        input_buffer = {input_buffer[6:0],miso};
+    end
+    else begin //data shifted out at the rising edge
+        output_bit = output_buffer[7];
+        mosi = output_bit;
+        output_buffer = {output_buffer[6:0],1'b0};
+    end
+end
+
+always_ff @(negedge div_clock) begin
+    if(spi_mode[1] ^ spi_mode[0]) begin //data sampled at the falling edge
+        input_buffer = {input_buffer[6:0],miso};
+    end
+    else begin //data shifted out at the falling edge
+        output_bit = output_buffer[7];
+        mosi = output_bit;
+        output_buffer = {output_buffer[6:0],1'b0};
+    end
+
+    counter = counter + 1;
+    if(counter[2] & counter [1] & counter[0]) begin
+        data_in_ready = 1;
+    end
 end
 
 endmodule
