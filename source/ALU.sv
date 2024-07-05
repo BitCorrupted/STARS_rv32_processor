@@ -15,7 +15,7 @@ module ALU (
     input logic unsigned [31:0] rda_u, rdb_u,
     input logic [3:0] fop,
     input logic alu_mux_en, u,
-    output logic signed [31:0] result,
+    output logic [31:0] result,
     output logic Z, N, V
 );
   logic [31:0] rda, rdb;

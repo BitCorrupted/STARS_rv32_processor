@@ -4,40 +4,78 @@ module ram (
     input logic [31:0] instruction_address, // no brainer, it is the insturction address
     input logic dm_read_en, dm_write_en, // enable ports for the read and enable
     input logic [31:0] data_to_write, // data to be written into memory
-    output logic [31:0] instruction_read, data_read // things we got from memory dude
+    output logic [31:0] instruction_read, data_read, // things we got from memory dude
+    output logic pc_enable
 );
 
-logic [31:0] mem [4095:0];
-initial $readmemh("cpu.mem", mem, 0, 4095);
+logic [31:0] memory [4095:0];
 
-always_ff @(posedge clk) begin
-    if (dm_write_en && data_address[11]) begin
-        mem[data_address[11:0]] <= data_to_write;
-    end
+initial begin
+        $readmemh("cpu.mem", memory);
+end
+
+
+typedef enum logic {IDLE, WAIT} StateType;
+
+StateType state, next_state;
+
+
+always_ff @(posedge clk, posedge rst) begin
+
+  if (rst) begin
+
+    state <= IDLE;
+
+  end else begin
+    state <= next_state;
+  end
 
 end
 
-always_ff @(posedge clk, negedge rst) begin
-    if (!rst) begin
-        data_read <= '0;
-        instruction_read <= mem[32'b0];
+
+// assign data_out = memory[address_DM];
+
+// assign instr_out = memory[address_IM];
+
+
+always_comb begin
+
+  pc_enable = 1'b1;
+
+  next_state = state;
+
+  case (state)
+
+  IDLE: begin
+
+    if (dm_read_en | dm_write_en) begin
+
+      pc_enable = 1'b0;
+
+      next_state = WAIT;
+
     end
 
-    else if (dm_read_en) begin
-        data_read <= mem[data_address[11:0]];
+  end
 
+  WAIT: begin
+
+  // pc_enable = 1'b1;
+
+    next_state = IDLE;
+
+  end
+
+  endcase
+
+end
+
+always @(negedge clk) begin
+    if (dm_write_en) begin
+        memory[{4'b0, data_address[7:0]}] <= data_to_write;
     end
-    
-    else if (!dm_read_en) begin
-        instruction_read <= mem[instruction_address];
-
-    end
-
-    else begin
-        instruction_read <= 32'b00000000000000000000000000010011;
-        data_read <= '0;
-
-    end
+    data_read <= memory[{4'b0, data_address[7:0]}];
+    instruction_read <= memory[{4'b0, instruction_address[9:2]}];
 end
 
 

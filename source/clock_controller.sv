@@ -7,13 +7,11 @@ module clock_controller(
 
 reg enable_clock;
 
-always_ff @(negedge clock, posedge reset, negedge halt) begin
+always_ff @(negedge clock, posedge reset) begin
     if(reset)
-        enable_clock = 0;
-    else if(halt)
-        enable_clock = 0;
-    else if(~clock)
-        enable_clock = 1;
+      enable_clock = 0;
+    else 
+      enable_clock = ~halt;
 end
 
 assign cpu_clock = clock && enable_clock;

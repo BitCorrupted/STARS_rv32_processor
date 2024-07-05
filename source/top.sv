@@ -37,14 +37,6 @@ module top (
 
 wire [31:0] ssdata;
 core core(.hz100(hwclk), .reset(reset || pb[1]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
-ssdec ssd0(ssdata[3:0], 1'b1, ss0[6:0]);
-ssdec ssd1(ssdata[7:4], 1'b1, ss1[6:0]);
-ssdec ssd2(ssdata[11:8], 1'b1, ss2[6:0]);
-ssdec ssd3(ssdata[15:12], 1'b1, ss3[6:0]);
-ssdec ssd4(ssdata[19:16], 1'b1, ss4[6:0]);
-ssdec ssd5(ssdata[23:20], 1'b1, ss5[6:0]);
-ssdec ssd6(ssdata[27:24], 1'b1, ss6[6:0]);
-ssdec ssd7(ssdata[31:28], 1'b1, ss7[6:0]);
 
 
 endmodule
