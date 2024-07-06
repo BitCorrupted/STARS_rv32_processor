@@ -95,9 +95,12 @@ module core(
    wire [31:0]reg8_data;
    wire [31:0] reg7_data;
    wire [31:0] IO_out, IO_pwm, IO_in, IO_pwm2;
-   assign ssdata = reg8_data;
-   assign right[7:0] = IO_out[7:0];
+   assign left[7:0] = reg8_data[7:0];
+   assign right[5:0] = IO_out[5:0];
    assign IO_in[7:0] = pb[7:0];
+
+  //  logic signed [31:0] pid_dut;
+  //  assign pid_dut = 32'b11111111111111100111100101100000;
   //assign right = reg8_data[7:0];
 //    assign reset = pb[20];
 
@@ -129,8 +132,8 @@ logic keyclk1;
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data), .slt(slt), .ALU_neg_flag(N), .ALU_overflow_flag(V));
 
-  pwm p_time(.duty(IO_pwm), .clk(hz100), .pwm_signal(left[1]));
-  pwm p_time2(.duty(IO_pwm2), .clk(hz100), .pwm_signal(left[0]));
+  pwm p_time(.duty(IO_pwm), .clk(hz100), .pwm_signal(right[7]));
+  pwm p_time2(.duty(IO_pwm2), .clk(hz100), .pwm_signal(right[6]));
 
   IO_mod_robot IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
   .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .IO_pwm2(IO_pwm2), .data_read(data_read));
@@ -782,10 +785,22 @@ assign cpu_clock = clock && enable_clock;
 endmodule
 
 module pwm (
-  input [31:0] duty,
+  input logic signed [31:0] duty,
   input clk,
   output pwm_signal
 );
+logic [31:0] duty1;
+
+always_comb begin
+  if (duty < 0)
+  duty1 = -duty;
+  else if (duty > 0) begin
+  duty1 = duty;
+  end
+  else begin
+  duty1 = 32'd0;
+  end
+end
 
   reg [31:0] counter = 0;
   
@@ -794,7 +809,7 @@ module pwm (
     else counter <= 0;
   end
 
-  assign pwm_signal = (counter < duty) ? 1:0;
+  assign pwm_signal = (counter < duty1) ? 1:0;
 
 
 endmodule
