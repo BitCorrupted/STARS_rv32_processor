@@ -132,8 +132,8 @@ logic keyclk1;
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data), .slt(slt), .ALU_neg_flag(N), .ALU_overflow_flag(V));
 
-  pwm p_time(.duty(IO_pwm), .clk(hz100), .pwm_signal(right[7]));
-  pwm p_time2(.duty(IO_pwm2), .clk(hz100), .pwm_signal(right[6]));
+  pwm p_time(.duty(IO_pwm), .clk(hz100), .rst(reset), .pwm_signal(right[7]));
+  pwm p_time2(.duty(IO_pwm2), .clk(hz100), .rst(reset), .pwm_signal(right[6]));
 
   IO_mod_robot IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
   .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .IO_pwm2(IO_pwm2), .data_read(data_read));
@@ -786,10 +786,11 @@ endmodule
 
 module pwm (
   input logic signed [31:0] duty,
-  input clk,
-  output pwm_signal
+  input logic clk, rst,
+  output logic pwm_signal
 );
 logic [31:0] duty1;
+logic [31:0] counter;
 
 always_comb begin
   if (duty < 0)
@@ -801,11 +802,14 @@ always_comb begin
   duty1 = 32'd0;
   end
 end
-
-  reg [31:0] counter = 0;
   
-  always @ (posedge clk) begin
-    if (counter < 588000) counter <= counter + 1;
+  always_ff@(posedge clk, posedge rst) begin
+    if (rst) begin
+      counter <= '0;
+
+    end
+
+    else if (counter < 588000) counter <= counter + 1;
     else counter <= 0;
   end
 

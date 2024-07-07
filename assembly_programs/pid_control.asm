@@ -14,7 +14,7 @@ _boot:                    /* x0  = 0    0x000 */
     li x18, 32 /*k_i*/
     li x19, 4 /*k_d*/
     li x20, 0 /*pid val*/
-    li x21, 240000 /*max pwm*/
+    li x21, 100000 /*max pwm*/
     li x23,240000 /*min pwm*/
     li x22, 0 /*output_reg*/
     
@@ -54,7 +54,7 @@ _boot:                    /* x0  = 0    0x000 */
         
         sw x20, 0(x30) /*set left pwm*/
         sw x20, 0(x28) /*set right pwm*/
-        beq x12, x0, forward
+        beq x12, x0, forward /*go forward*/
 
         
         /*5 forward, 10 backward, 9 right, 6 left*/
@@ -70,6 +70,8 @@ _boot:                    /* x0  = 0    0x000 */
     	beq x0, x0, main_loop /*restart loop*/
         
 	forward:
+    	sw x21, 0(x30) /*set left pwm*/
+        sw x21, 0(x28) /*set right pwm*/
     /*5 forward, 10 backward, 9 right, 6 left*/
         bge x20, x0, turn_right /*turn right if negative*/
         li x22, 5 /*turn left value*/
