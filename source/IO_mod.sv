@@ -19,8 +19,18 @@ always_ff @(posedge clk, posedge rst) begin
     end
 
     else begin
-        IO_out <= next_output_reg;
-        input_reg <= IO_in;
+        for (integer i = 0; i < 31; i++) begin
+            if (next_enable_reg[i] == 1) begin
+                IO_out[i] <= next_output_reg[i];
+                input_reg[i] <= 0;
+            end
+
+            else begin
+                IO_out[i] <= 0;
+                input_reg[i] <= IO_in[i];
+
+            end
+        end
         enable_reg <= next_enable_reg;
 
     end
