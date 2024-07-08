@@ -94,10 +94,10 @@ module core(
   // assign left = program_counter[7:0];
    wire [31:0]reg8_data;
    wire [31:0] reg7_data;
-   wire [31:0] IO_out, IO_pwm, IO_in, IO_pwm2;
+   wire [31:0] IO;
    assign left[7:0] = reg8_data[7:0];
-   assign right[5:0] = IO_out[5:0];
-   assign IO_in[7:0] = pb[7:0];
+   assign right[7:0] = IO[7:0];
+   assign IO[15:8] = pb[7:0];
 
   //  logic signed [31:0] pid_dut;
   //  assign pid_dut = 32'b11111111111111100111100101100000;
@@ -132,11 +132,14 @@ logic keyclk1;
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data), .slt(slt), .ALU_neg_flag(N), .ALU_overflow_flag(V));
 
-  pwm p_time(.duty(IO_pwm), .clk(hz100), .rst(reset), .pwm_signal(right[7]));
-  pwm p_time2(.duty(IO_pwm2), .clk(hz100), .rst(reset), .pwm_signal(right[6]));
+  // pwm p_time(.duty(IO_pwm), .clk(hz100), .rst(reset), .pwm_signal(right[7]));
+  // pwm p_time2(.duty(IO_pwm2), .clk(hz100), .rst(reset), .pwm_signal(right[6]));
 
-  IO_mod_robot IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
-  .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .IO_pwm2(IO_pwm2), .data_read(data_read));
+  // IO_mod_robot IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
+  // .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .IO_pwm2(IO_pwm2), .data_read(data_read));
+
+   IO_mod IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
+  .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO), .IO_in(IO), .data_read(data_read));
 
 
    byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .b_out(data_to_write));
@@ -171,7 +174,7 @@ always_comb begin
     next_registers_state = registers_state;
 
 
-    if (register_write_en && (rd_address != 5'b0) && (rd_address != 5'd29) && (rd_address != 5'd30) && (rd_address != 5'd31) && (rd_address != 5'd28)) begin
+    if (register_write_en && (rd_address != 5'b0) && (rd_address != 5'd29) && (rd_address != 5'd30) && (rd_address != 5'd31)) begin
         next_registers_state[rd_address] = register_write_data;
     end
 end
@@ -187,7 +190,7 @@ always_ff @(posedge clk, posedge rst) begin
         registers_state[29] <= 32'hFFFFFFFC;
         registers_state[30] <= 32'hFFFFFFFD;
         registers_state[31] <= 32'hFFFFFFFF;
-        registers_state[28] <= 32'hFFFFFFFE;
+       // registers_state[28] <= 32'hFFFFFFFE;
 
     end
 
@@ -865,6 +868,67 @@ always_comb begin
         end
         32'hFFFFFFFE: begin
            next_pwm2_reg = (write_mem) ? data_to_write : IO_pwm2;
+        end
+        32'hFFFFFFFC: begin
+           data_read = (read_mem) ? input_reg : data_from_mem;
+        end
+    endcase
+end
+
+
+endmodule
+
+
+module IO_mod(
+     input logic clk, rst,
+    input logic write_mem, read_mem,
+    input logic [31:0] data_from_mem,
+    input logic [31:0] data_address, data_to_write,
+    output logic [31:0] data_read,
+    output logic [31:0] IO_out, 
+    input logic [31:0] IO_in
+);
+ logic [31:0] output_reg, input_reg, enable_reg;
+ logic [31:0] next_output_reg, next_input_reg, next_enable_reg;
+
+
+always_ff @(posedge clk, posedge rst) begin
+    if (rst) begin
+        IO_out <= '0;
+        input_reg <= '0;
+        enable_reg <= '0;
+    end
+
+    else begin
+        for (integer i = 0; i < 31; i++) begin
+            if (next_enable_reg[i] == 1) begin
+                IO_out[i] <= next_output_reg[i];
+                input_reg[i] <= 0;
+            end
+
+            else begin
+                IO_out[i] <= 0;
+                input_reg[i] <= IO_in[i];
+
+            end
+        end
+        enable_reg <= next_enable_reg;
+
+    end
+
+end
+
+always_comb begin
+
+    next_output_reg = IO_out;
+    next_enable_reg = IO_out;
+    data_read = data_from_mem;
+    case(data_address)
+        32'hFFFFFFFF: begin
+           next_output_reg = (write_mem) ? data_to_write : IO_out;
+        end
+        32'hFFFFFFFD: begin
+           next_enable_reg = (write_mem) ? data_to_write : IO_out;
         end
         32'hFFFFFFFC: begin
            data_read = (read_mem) ? input_reg : data_from_mem;
