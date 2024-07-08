@@ -4,7 +4,7 @@ module IO_mod(
     input logic [31:0] data_from_mem,
     input logic [31:0] data_address, data_to_write,
     output logic [31:0] data_read,
-    output logic [31:0] IO_out, 
+    output logic [31:0] IO_out, IO_enable,
     input logic [31:0] IO_in
 );
  logic [31:0] output_reg, input_reg, enable_reg;
@@ -19,18 +19,8 @@ always_ff @(posedge clk, posedge rst) begin
     end
 
     else begin
-        for (integer i = 0; i < 31; i++) begin
-            if (next_enable_reg[i] == 1) begin
-                IO_out[i] <= next_output_reg[i];
-                input_reg[i] <= 0;
-            end
-
-            else begin
-                IO_out[i] <= 0;
-                input_reg[i] <= IO_in[i];
-
-            end
-        end
+        IO_out <= next_output_reg;
+        input_reg <= IO_in;
         enable_reg <= next_enable_reg;
 
     end
