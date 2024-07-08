@@ -22,7 +22,7 @@ typedef enum logic [3:0] {
 
 module top (
   // I/O ports
-  input  logic hwclk, reset,
+  input  logic hz100, reset,
   input  logic [20:0] pb,
   output logic [7:0] left, right,
          ss7, ss6, ss5, ss4, ss3, ss2, ss1, ss0,
@@ -36,7 +36,7 @@ module top (
 );
 
 wire [31:0] ssdata;
-core core(.hz100(hwclk), .reset(reset || pb[1]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
+core core(.hz100(hz100), .reset(reset || pb[19]), .left(left), .right(right), .ssdata(ssdata), .pb(pb[18:0]));
 ssdec ssd0(ssdata[3:0], 1'b1, ss0[6:0]);
 ssdec ssd1(ssdata[7:4], 1'b1, ss1[6:0]);
 ssdec ssd2(ssdata[11:8], 1'b1, ss2[6:0]);
@@ -47,11 +47,12 @@ ssdec ssd6(ssdata[27:24], 1'b1, ss6[6:0]);
 ssdec ssd7(ssdata[31:28], 1'b1, ss7[6:0]);
 
 
+
 endmodule
 
 module core(
   input logic hz100, reset,
-  input logic [20:0] pb, 
+  input logic [18:0] pb, 
   output logic [7:0] right,
   output logic [7:0] left,
   output logic [31:0] ssdata
@@ -91,28 +92,48 @@ module core(
     logic u;
     //logic [31:0] b_out_connect;
   // assign right = result[7:0];
-  // assign left = program_counter[7:0];
+  assign left = program_counter[7:0];
    wire [31:0]reg8_data;
    wire [31:0] reg7_data;
-   assign ssdata = reg8_data;
-   assign right[6] = pb[17];
+
+assign right = result[7:0];
   //assign right = reg8_data[7:0];
 //    assign reset = pb[20];
 
   
   //this is a test
+ // request unit 
 
 
 
 
 logic keyclk;
 logic keyclk1;
-  synckey s1(.in({19'b0, pb[9]}), .out(), .strobe(keyclk1), .clk(hz100), .rst(reset));
 
-  clock_controller clock_controller(.halt(1'b0), .cpu_clock(keyclk), .clock(keyclk1), .reset(reset));
+  logic i_ready, d_ready, busy_o, read_i, write_i;
+  logic [3:0] sel_i;
+  logic [31:0] cpu_dat_i, cpu_dat_o, adr_i;
+  synckey s1(.in({1'b0, pb[18:0]}), .out(), .strobe(keyclk), .clk(hz100), .rst(reset));
 
-  ram ram(.clk(hz100), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
-    .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read), .pc_enable(pc_en));
+  clock_controller clock_controller(.halt(1'b0), .cpu_clock(keyclk1), .clock(keyclk), .reset(reset));
+
+    request_unit_j ru1(.clk(keyclk1), .rst(reset), .memread(1'b1), .memwrite(write_mem), .data_address(result), .instruction_address(program_counter), .alu_result(result), .busy_o(busy_o), .cpu_dat_o(cpu_dat_o), .read_i(read_i), .write_i(write_i), .cpu_dat_i(cpu_dat_i), .instruction(inst), .adr_i(adr_i), .data_read(data_read), .sel_i(sel_i), .i_hit(i_ready));
+
+//   request_unit ru(.clk(keyclk1), .nRST(reset), .D_fetch(read_mem), .D_write(write_mem), 
+//   .I_fetch(1'b1), .data_adr(result), .instr_adr(program_counter), .writedata(data_to_write), 
+//   .i_done(i_ready), .d_done(d_ready), .instr(inst), .data(data_read), .busy_o(busy_o), 
+//   .cpu_dat_o(cpu_dat_o), .write_i(write_i), .read_i(read_i), .adr_i(adr_i), 
+//   .cpu_dat_i(cpu_dat_i), .sel_i(sel_i));
+
+  ram ram(.clk(keyclk1), .nRST(reset), .read_i(read_i), .write_i(write_i), 
+  .cpu_dat_i(cpu_dat_i), .adr_i(adr_i[11:0]), .sel_i(sel_i), 
+  .cpu_dat_o(cpu_dat_o), .busy_o(busy_o));
+
+//   dram ram(.clk(keyclk1), .rst(reset), .data_address(result), 
+//   .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
+//    .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read), 
+//    .pc_enable(pc_en));
+  
   
   decoder decoder(.inst(inst), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
 
@@ -121,18 +142,14 @@ logic keyclk1;
 
   branch_logic branch_logic(.branch_type(branch_type), .ALU_neg_flag(N), .ALU_overflow_flag(V), .ALU_zero_flag(Z), .b_out(branch_choice));
 
-   pc pc(.pc_out(program_counter), .pc_add_out(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_add_write_value(pc_add_write_value), .in_en(pc_en), .auipc_in(alu_mux_en), .clock(hz100), .reset(reset));
+   pc pc(.pc_out(program_counter), .pc_add_out(program_counter_out), .generated_immediate(imm_gen), .branch_decision(branch_choice), .pc_write_value(regA_data), .pc_add_write_value(pc_add_write_value), .in_en(i_ready), .auipc_in(alu_mux_en), .clock(keyclk1), .reset(reset));
 
-  register_file register_file(.clk(hz100), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data), .reg8(reg8_data), .reg7(reg7_data));
+  register_file register_file(.clk(keyclk1), .rst(reset), .regA_address(regA), .regB_address(regB), .rd_address(rd), .register_write_en(reg_write_en), .register_write_data(register_write_data), .regA_data(regA_data), .regB_data(regB_data), .reg8(reg8_data), .reg7(reg7_data));
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data), .slt(slt), .ALU_neg_flag(N), .ALU_overflow_flag(V));
 
-  pwm p_time(.duty(reg7_data), .clk(hz100), .pwm_signal(left[0]));
-
-
    byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .b_out(data_to_write));
 
-   //byte_imm_gen byte_immediate_generator (.b_out(b_out_connect), .imm_gen_byte(data_to_write));
 
    ALU ALU(.srda(regA_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .V(V), .imm_gen(imm_gen), .srdb(regB_data), .alu_mux_en(alu_mux_en), .rda_u(regA_data), .rdb_u(regB_data), .u(u));
 
@@ -170,17 +187,12 @@ end
 
 always_ff @(posedge clk, posedge rst) begin
     if (rst) begin
-        //for (integer i = 0; i < 32; i++) begin
-        //    registers_state[i] <= 32'b0;
-        //end
-        //registers_state <= '{default:'0};
         registers_state <= '0;
     end
 
     else begin
         registers_state <= next_registers_state;
     end
-
 
 end
 
@@ -471,13 +483,6 @@ module byte_demux (
     end
 endmodule
 
-// module byte_imm_gen (
-//     input logic [31:0] b_out,
-//     output logic [31:0] imm_gen_byte
-// );
-//     assign imm_gen_byte = {24'd0, b_out[7:0]};
-// endmodule
-
 module imm_generator (
     input logic [31:0] inst,
     input logic [2:0] type_i,
@@ -576,92 +581,6 @@ always_comb begin
         register_value = memory_value;
 end
 assign register_write = register_value;
-
-endmodule
-
-
-
-module ram (
-    input logic clk, rst,
-    input logic [31:0] data_address, // alu result to be read or written
-    input logic [31:0] instruction_address, // no brainer, it is the insturction address
-    input logic dm_read_en, dm_write_en, // enable ports for the read and enable
-    input logic [31:0] data_to_write, // data to be written into memory
-    output logic [31:0] instruction_read, data_read, // things we got from memory dude
-    output logic pc_enable
-);
-
-logic [31:0] memory [4095:0];
-
-initial begin
-        $readmemh("cpu.mem", memory);
-end
-
-
-typedef enum logic {IDLE, WAIT} StateType;
-
-StateType state, next_state;
-
-
-always_ff @(posedge clk, posedge rst) begin
-
-  if (rst) begin
-
-    state <= IDLE;
-
-  end else begin
-    state <= next_state;
-  end
-
-end
-
-
-// assign data_out = memory[address_DM];
-
-// assign instr_out = memory[address_IM];
-
-
-always_comb begin
-
-  pc_enable = 1'b1;
-
-  next_state = state;
-
-  case (state)
-
-  IDLE: begin
-
-    if (dm_read_en | dm_write_en) begin
-
-      pc_enable = 1'b0;
-
-      next_state = WAIT;
-
-    end
-
-  end
-
-  WAIT: begin
-
-  // pc_enable = 1'b1;
-
-    next_state = IDLE;
-
-  end
-
-  endcase
-
-end
-
-always @(negedge clk) begin
-    if (dm_write_en) begin
-        memory[{4'b0, data_address[7:0]}] <= data_to_write;
-    end
-    data_read <= memory[{4'b0, data_address[7:0]}];
-    instruction_read <= memory[{4'b0, instruction_address[9:2]}];
-end
-
-
 
 endmodule
 
@@ -769,19 +688,419 @@ assign cpu_clock = clock && enable_clock;
 
 endmodule
 
-module pwm (
-  input [31:0] duty,
-  input clk,
-  output pwm_signal
+
+// module request_unit (
+//     // From CPU
+//     input logic clk, nRST,
+//     input logic D_fetch, D_write, I_fetch,  
+//     input logic [31:0] data_adr, instr_adr, 
+//     input logic [31:0] writedata,           
+//     // To CPU
+//     output logic i_done, d_done,            
+//     output logic [31:0] instr, data,        
+//     // From Wishbone
+//     input logic busy_o,                     
+//     input logic [31:0] cpu_dat_o,          
+//     output logic write_i, read_i,
+//     output logic [31:0] adr_i,              
+//     output logic [31:0] cpu_dat_i,          
+//     output logic [3:0] sel_i                
+// );
+
+//     assign sel_i = 4'b1111;
+
+//     logic [31:0] next_instr, next_data, next_adr, next_data_w;
+
+//     typedef enum logic [1:0] {IDLE, READ_D, READ_I, WRITE_D} StateType;
+
+//     StateType state, next_state;
+
+//     always_ff @(posedge clk, posedge nRST) begin
+//         if (nRST) begin
+//             state       <= IDLE;
+//             instr       <= 32'b0;
+//             data        <= 32'b0;
+//             adr_i       <= 32'b0;
+//             cpu_dat_i   <= 32'b0;
+//         end else begin
+//             state       <= next_state;
+//             instr       <= next_instr;
+//             data        <= next_data;
+//             adr_i       <= next_adr;
+//             cpu_dat_i   <= next_data_w;
+//         end
+//     end
+
+//     always_comb begin
+//         // To Wishbone
+//         read_i      = 1'b0; // read request
+//         write_i     = 1'b0; // write request
+//         // To CPU
+//         i_done      = 1'b0; 
+//         d_done      = 1'b0;
+//         ///////////////////
+//         next_state  = state;
+//         next_data   = data;
+//         next_instr  = instr;
+//         next_adr    = adr_i;
+//         next_data_w = cpu_dat_i;
+//         case (state)
+//             IDLE: begin
+//                 if (D_fetch) begin
+//                     read_i      = 1'b1;
+//                     write_i     = 1'b0;
+//                     next_adr    = data_adr;
+//                     next_state  = READ_D;
+//                 end else if (D_write) begin
+//                     read_i      = 1'b0;
+//                     write_i     = 1'b1;
+//                     next_adr    = data_adr;
+//                     next_data_w = writedata;
+//                     next_state  = WRITE_D;
+//                 end else if (I_fetch) begin
+//                     read_i      = 1'b1;
+//                     write_i     = 1'b0;
+//                     next_adr    = instr_adr;
+//                     next_state  = READ_I;
+//                 end else begin
+//                     read_i      = 1'b0;
+//                     write_i     = 1'b0;
+//                     next_adr    = 32'b0;
+//                     next_data_w = 32'b0;
+//                     next_state  = IDLE;
+//                 end
+//             end
+//             READ_I: begin
+//                 read_i          = 1'b0;
+//                 if (busy_o) begin
+//                     next_instr  = cpu_dat_o;
+//                 end else begin
+//                     next_adr    = 32'b0;
+//                     i_done      = 1'b1;
+//                     next_instr  = 32'b0;
+//                     next_state  = IDLE;
+//                 end
+//             end
+//             READ_D: begin
+//                 read_i          = 1'b0;
+//                 if (busy_o) begin
+//                     next_data   = cpu_dat_o;
+//                 end else begin
+//                     next_adr    = 32'b0;
+//                     d_done      = 1'b1;
+//                     next_data   = 32'b0;
+//                     next_state  = IDLE;
+//                 end
+//             end
+//             WRITE_D: begin
+//                 write_i         = 1'b0;
+//                 if (!busy_o) begin
+//                     next_adr    = 32'b0;
+//                     next_data_w = 32'b0;
+//                     d_done      = 1'b1;
+//                     next_state  = IDLE;
+//                 end
+//             end
+//             default:; 
+//         endcase
+//     end
+// endmodule
+
+module request_unit_j(
+    input logic clk, rst, memread, memwrite, // CPU side signals
+    input logic [31:0] data_address, 
+    input logic [31:0] instruction_address, alu_result, 
+    input logic busy_o, // wish bone
+    input logic [31:0] cpu_dat_o, // wishbone side signals as inputs
+    output logic read_i, write_i, 
+    output logic [31:0] cpu_dat_i,
+    output logic [31:0] instruction,
+    output logic [31:0] adr_i,
+    output logic [31:0] data_read,
+    output logic [3:0] sel_i,
+    output logic i_hit // pc enable signal 
 );
 
-  reg [31:0] counter = 0;
-  
-  always @ (posedge clk) begin
-    if (counter < 588000) counter <= counter + 1;
-    else counter <= 0;
+typedef enum logic [1:0] {
+    IDLE, BUSY
+} state_t;
+
+state_t state, next_state;
+logic request_type, next_request_type, next_i_hit, i_request, d_hit, next_read, next_write, next_d_hit, next_i_request; // if 1, we are requesting data from memory (like IF or DF so on and so forth so yeah)
+logic [31:0] next_cpu_dat, next_instruction, next_adr;
+
+always_ff @(posedge clk, posedge rst) begin
+    if(rst) begin
+        read_i <= 1'b0; // read request
+        write_i <= 1'b0; // write request
+        adr_i <= '0; // address
+        cpu_dat_i <= '0; // cpu data
+        sel_i <= '0;
+        instruction <= '0;
+        i_hit <= 1'b0;
+        state <= IDLE;
+        i_request <= 1'b0;
+        d_hit <= 1'b0;
+    end else begin
+        read_i <= next_read;
+        write_i <= next_write;
+        adr_i <= next_adr;
+        cpu_dat_i <= next_cpu_dat;
+        sel_i <= 4'd15;
+        instruction <= next_instruction;
+        d_hit <= next_d_hit;
+        i_hit <= next_i_hit;
+        state <= next_state;
+        i_request <= next_i_request;
+    end
+end
+
+    always_comb begin
+        // if we are busy, we want to retain our current values below
+        next_adr = adr_i;
+        next_read = read_i;
+        next_write = write_i;
+        next_cpu_dat = cpu_dat_i;
+        next_instruction = instruction;
+        next_i_hit = i_hit;
+        next_d_hit = d_hit;
+        next_state = state;
+        next_i_request = i_request;
+        data_read = '0;
+        case(state)
+            IDLE : begin
+                next_state = (!busy_o) ? BUSY : IDLE; 
+                if(memread && !d_hit) begin // reading data from memory to write back
+
+                    // settings to the wishbone interface bus
+
+                    next_read = 1'b1; // enabling read
+                    next_write = 1'b0; // disabling write
+                    next_adr = alu_result; // setting the address to the address computed by the alu
+                    next_i_request = 1'b0; 
+
+                end else if (memwrite &&  !d_hit) begin // writing data into memory
+
+                    // settings to the wishbone interface bus
+
+                    next_read = 1'b0; // disabling read
+                    next_write = 1'b1; // enabling write
+                    next_adr = data_address; // address of the data we want to write into
+                    next_cpu_dat = alu_result; // data we are writing into
+                    next_i_request = 1'b0; // we are not requesting data
+
+                end else begin // instruction fetching from the memory
+
+                    // settings to the wishbone interface bus
+                    next_read = 1'b1; // enabling read
+                    next_write = 1'b0; // disabling write
+                    next_adr = data_address; // setting the address of the instruction we are trying to fetch currently
+                    next_i_request = 1'b1; // requesitng from memory
+                end
+            end
+            
+            BUSY : begin
+                if(!busy_o) begin
+                    next_d_hit = !i_request;
+                    next_i_hit = i_request; // We only want pc counter to increment when we get an instruction fetch hit
+                    // Note, we might not need to register the i_hit at all now, might need to double check the timing of this
+                    next_state = IDLE;
+
+                    if(memread) begin
+                        data_read = cpu_dat_o; // data to be written back into the register                        
+                    end else begin
+                        next_instruction = cpu_dat_o; // The next instruction
+                    end
+                end
+            end
+            default:;
+        endcase
+   end
+
+endmodule
+
+module ram (
+    input logic clk, nRST,
+    // From Request Unit
+    input logic         read_i, write_i,
+    input logic [31:0]  cpu_dat_i,
+    input logic [11:0]  adr_i,
+    input logic [3:0]   sel_i,
+    // To Request Unit
+    output logic [31:0] cpu_dat_o,
+    output logic        busy_o
+);
+    logic [31:0] memory [4095:0];
+
+    logic next_busy_o, wen, next_wen, ren, next_ren, read_done;
+    reg write_done;
+
+    ///////////////////////////////////////////////
+
+    initial begin
+        $readmemh("cpu.mem", memory);
+    end
+
+    always @(negedge clk) begin
+        if (wen) begin
+            memory[adr_i]   <= cpu_dat_i; // we are setting the memory at the address location equal to the cpu_dat_i
+            cpu_dat_o       <= 32'b0; // we aren't sending any value back
+            write_done      <= 1'b1;
+            read_done       <= 1'b0;
+        end else if (ren) begin
+            cpu_dat_o       <= memory[adr_i]; // data we are reading and sending back subsequently 
+            write_done      <= 1'b0;
+            read_done       <= 1'b1;
+        end else begin
+            cpu_dat_o       <= 32'b0;
+            write_done      <= 1'b0;
+            read_done       <= 1'b0; 
+        end 
+    end
+
+    typedef enum logic [1:0] {IDLE, READ, WRITE} StateType;
+
+    StateType state, next_state;
+
+    always_ff @(posedge clk, posedge nRST) begin
+        if (nRST) begin
+            state       <= IDLE;
+            busy_o      <= 1'b0;
+            wen         <= 1'b0;
+            ren <= 1'b0;
+        end else begin
+            state       <= next_state;
+            busy_o      <= next_busy_o;
+            wen         <= next_wen;
+            ren <= next_ren;
+        end
+    end
+
+    always_comb begin
+        next_state  = state;
+        next_busy_o = busy_o;
+        next_wen    = wen;
+        next_ren    = ren;
+        case (state)
+            IDLE: begin // RU in IDLE or READ_I or READ_D or WRITE_D
+                if (read_i && !write_i) begin
+                    next_state  = READ;
+                    next_busy_o = 1'b1;
+                    next_ren    = 1'b1;
+                    next_wen = 1'b0;
+                end else if (write_i && !read_i) begin
+                    next_ren = 1'b0;
+                    next_wen    = 1'b1;
+                    next_state  = WRITE;
+                    next_busy_o = 1'b1;
+                end
+            end 
+            READ: begin // RU in READ_I or READ_D
+                if (read_done) begin
+                    next_state  = IDLE;
+                    next_busy_o = 1'b0;
+                    next_ren    = 1'b0;
+                    next_wen = 1'b0;
+                end
+            end
+            WRITE: begin // RU in WRITE_D
+                if (write_done) begin
+                    next_state  = IDLE;
+                    next_busy_o = 1'b0;
+                    next_wen    = 1'b0;
+                    next_ren = 1'b0;
+                end 
+            end
+            default:; 
+        endcase
+    end
+    
+endmodule
+
+
+
+
+
+module dram (
+    input logic clk, rst,
+    input logic [31:0] data_address, // alu result to be read or written
+    input logic [31:0] instruction_address, // no brainer, it is the insturction address
+    input logic dm_read_en, dm_write_en, // enable ports for the read and enable
+    input logic [31:0] data_to_write, // data to be written into memory
+    output logic [31:0] instruction_read, data_read, // things we got from memory dude
+    output logic pc_enable
+);
+
+logic [31:0] memory [4095:0];
+
+initial begin
+        $readmemh("cpu.mem", memory);
+end
+
+
+typedef enum logic {IDLE, WAIT} StateType;
+
+StateType state, next_state;
+
+
+always_ff @(posedge clk, posedge rst) begin
+
+  if (rst) begin
+
+    state <= IDLE;
+
+  end else begin
+    state <= next_state;
   end
 
-  assign pwm_signal = (counter < duty) ? 1:0;
+end
+
+
+// assign data_out = memory[address_DM];
+
+// assign instr_out = memory[address_IM];
+
+
+always_comb begin
+
+  pc_enable = 1'b1;
+
+  next_state = state;
+
+  case (state)
+
+  IDLE: begin
+
+    if (dm_read_en | dm_write_en) begin
+
+      pc_enable = 1'b0;
+
+      next_state = WAIT;
+
+    end
+
+  end
+
+  WAIT: begin
+
+  // pc_enable = 1'b1;
+
+    next_state = IDLE;
+
+  end
+
+  endcase
+
+end
+
+always @(negedge clk) begin
+    if (dm_write_en) begin
+        memory[{4'b0, data_address[7:0]}] <= data_to_write;
+    end
+    data_read <= memory[{4'b0, data_address[7:0]}];
+    instruction_read <= memory[{4'b0, instruction_address[9:2]}];
+end
+
+
 
 endmodule
