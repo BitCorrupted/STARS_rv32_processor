@@ -1,4 +1,4 @@
-module IO_mod_robot(
+module IO_mod(
      input logic clk, rst,
     input logic write_mem, read_mem,
     input logic [31:0] data_from_mem,
@@ -9,9 +9,6 @@ module IO_mod_robot(
 );
  logic [31:0] output_reg, input_reg, enable_reg;
  logic [31:0] next_output_reg, next_input_reg, next_enable_reg;
-
-
- 
 
 
 always_ff @(posedge clk, posedge rst) begin

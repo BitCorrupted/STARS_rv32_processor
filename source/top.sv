@@ -810,7 +810,7 @@ end
     end
 
     else if (counter < 588000) counter <= counter + 1;
-    else counter <= 0;
+    else counter <= '0;
   end
 
   assign pwm_signal = (counter < duty1) ? 1:0;
@@ -829,8 +829,6 @@ module IO_mod_robot(
 );
  logic [31:0] output_reg, input_reg, pwm_reg, pwm2_reg;
  logic [31:0] next_output_reg, next_input_reg, next_pwm_reg, next_pwm2_reg;
-
-
  
 
 
