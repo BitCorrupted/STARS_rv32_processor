@@ -95,8 +95,9 @@ module core(
    wire [31:0]reg8_data;
    wire [31:0] reg7_data;
    wire [31:0] IO_out, IO_pwm, IO_in, IO_pwm2;
-   assign left[7:0] = reg8_data[7:0];
+   assign left[6:0] = reg8_data[6:0];
    assign right[5:0] = IO_out[5:0];
+   assign left[7] = IO_out[8];
    assign IO_in[7:0] = pb[7:0];
 
   //  logic signed [31:0] pid_dut;
