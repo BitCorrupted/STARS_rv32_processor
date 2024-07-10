@@ -96,7 +96,8 @@ module core(
    wire [31:0] reg7_data;
    wire [31:0] IO_out, IO_pwm, IO_in, IO_pwm2, IO_pwm3;
    assign left[6:0] = reg8_data[6:0];
-   //assign right[5:0] = IO_out[5:0];
+   
+   assign right[3:0] = IO_out[3:0];
    assign left[7] = IO_out[8];
    assign IO_in[7:0] = pb[7:0];
 
@@ -135,7 +136,7 @@ logic keyclk1;
 
   pwm p_time(.duty(IO_pwm), .clk(hz100), .rst(reset), .pwm_signal(right[7]));
   pwm p_time2(.duty(IO_pwm2), .clk(hz100), .rst(reset), .pwm_signal(right[6]));
-  pwm p_time3(.duty(IO_pwm3), .clk(hz100), .rst(reset), .pwm_signal(right[5]));
+  pwm p_time3(.duty(IO_pwm3), .clk(hz100), .rst(reset), .pwm_signal(right[4]));
 
   IO_mod_robot IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
   .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .IO_pwm2(IO_pwm2), .data_read(data_read));
@@ -149,7 +150,7 @@ logic keyclk1;
 
    imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen(imm_gen));
 
-   coil launch(.trig(pb[1]), .rst(reset), .clk(hz100), .charge_out(right[2]), .duty(IO_pwm3));
+   coil launch(.trig(), .rst(reset), .clk(hz100), .charge_out(right[5]), .duty(IO_pwm3));
 
   
 endmodule
