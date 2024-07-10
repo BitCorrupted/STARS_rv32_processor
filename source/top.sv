@@ -94,9 +94,9 @@ module core(
   // assign left = program_counter[7:0];
    wire [31:0]reg8_data;
    wire [31:0] reg7_data;
-   wire [31:0] IO_out, IO_pwm, IO_in, IO_pwm2;
+   wire [31:0] IO_out, IO_pwm, IO_in, IO_pwm2, IO_pwm3;
    assign left[6:0] = reg8_data[6:0];
-   assign right[5:0] = IO_out[5:0];
+   //assign right[5:0] = IO_out[5:0];
    assign left[7] = IO_out[8];
    assign IO_in[7:0] = pb[7:0];
 
@@ -135,6 +135,7 @@ logic keyclk1;
 
   pwm p_time(.duty(IO_pwm), .clk(hz100), .rst(reset), .pwm_signal(right[7]));
   pwm p_time2(.duty(IO_pwm2), .clk(hz100), .rst(reset), .pwm_signal(right[6]));
+  pwm p_time3(.duty(IO_pwm3), .clk(hz100), .rst(reset), .pwm_signal(right[5]));
 
   IO_mod_robot IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
   .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .IO_pwm2(IO_pwm2), .data_read(data_read));
@@ -147,6 +148,9 @@ logic keyclk1;
    ALU ALU(.srda(regA_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .V(V), .imm_gen(imm_gen), .srdb(regB_data), .alu_mux_en(alu_mux_en), .rda_u(regA_data), .rdb_u(regB_data), .u(u));
 
    imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen(imm_gen));
+
+   coil launch(.trig(pb[1]), .rst(reset), .clk(hz100), .charge_out(right[2]), .duty(IO_pwm3));
+
   
 endmodule
 
@@ -873,5 +877,45 @@ always_comb begin
     endcase
 end
 
+
+endmodule
+
+module coil (
+    input logic trig, rst, clk,
+    output logic charge_out,
+    output logic [31:0] duty
+);
+logic trig_store, charge;
+assign charge_out = ~charge;
+
+always_ff @(posedge clk, posedge rst) begin
+    if (rst) begin
+        trig_store <= 1'b0;
+    end
+    else begin 
+        trig_store <= (trig_store ^ trig);
+    end
+end
+
+logic [31:0] counter;
+always @ (posedge clk, posedge rst) begin
+if (rst) begin 
+    counter <= 32'd0;
+end
+else if ((counter < 100000000) && trig_store) begin 
+    counter <= counter + 1;
+    charge <= 1'b1;
+end
+else if (counter == 100000000) begin 
+    duty <= 32'd10000;
+    charge <= 1'b0;
+
+end
+else begin
+    charge <= 1'b0;
+    duty <= 32'd20000;
+
+end
+end
 
 endmodule
