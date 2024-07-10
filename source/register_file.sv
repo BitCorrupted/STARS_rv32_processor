@@ -12,8 +12,8 @@ logic [31:0][31:0] next_registers_state;
 
 always_comb begin
     next_registers_state = registers_state;
-    regA_data = next_registers_state[regA_address];
-    regB_data = next_registers_state[regB_address];
+    regA_data = registers_state[regA_address];
+    regB_data = registers_state[regB_address];
 
     if (register_write_en && rd_address != 5'b0) begin
         next_registers_state[rd_address] = register_write_data;

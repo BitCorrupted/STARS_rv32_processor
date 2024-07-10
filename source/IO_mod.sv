@@ -1,5 +1,7 @@
 module IO_mod(
-     input logic clk, rst,
+
+    input logic clk, rst,
+
     input logic write_mem, read_mem,
     input logic [31:0] data_from_mem,
     input logic [31:0] data_address, data_to_write,
@@ -7,6 +9,7 @@ module IO_mod(
     output logic [31:0] IO_out, IO_enable,
     input logic [31:0] IO_in
 );
+
  logic [31:0] output_reg, input_reg, enable_reg;
  logic [31:0] next_output_reg, next_input_reg, next_enable_reg;
 
@@ -22,6 +25,7 @@ always_ff @(posedge clk, posedge rst) begin
         IO_out <= next_output_reg;
         input_reg <= IO_in;
         enable_reg <= next_enable_reg;
+
 
     end
 

@@ -23,18 +23,22 @@ module IO_mod_robot(
         case(data_address)
             32'hFFFFFFFF: begin //GPIO output register
                 next_output_reg = data_to_write; 
+
                 data_read = data_from_mem;    
             end
             32'hFFFFFFFD: begin //PWM register
                 next_pwm_reg = data_to_write;
                 data_read = data_from_mem;
+
             end
             default: begin //Other addresses
                 next_output_reg = output_reg;
                 next_pwm_reg = pwm_reg;
+
                 data_read = data_from_mem;
             end
         endcase
+
     end
 
     else if(read_mem) begin
