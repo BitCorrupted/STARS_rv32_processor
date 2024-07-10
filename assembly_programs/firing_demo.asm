@@ -84,6 +84,13 @@ _boot:                    /* x0  = 0    0x000 */
         sw x0, 0(x28) /*set right pwm*/
     	li x25, 256 /*coil gun signal*/
         sw x25, 0(x31) /*output signal*/
+        li x25, 0 /*toggle switch*/
+        sw x25, 0(x31) /*toggle mem*/
+        beq x0,x0, do_nothing
+       
+	do_nothing:
+    	nop
+        beq x0, x0, do_nothing
     	
     	
 

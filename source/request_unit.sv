@@ -1,120 +1,133 @@
-/*
-write_i = enabling the write port for the bus
-read_i = enabling the read port for the bus
-adr_i = addres we are trying to access from memory
-cpu_dat_i = the data we are trying to write into memory based on the address of the instruction
-sel_i = just permanently set to 15 since we are always trying to get 32 bits of data
-cpu_dat_o = data that was read from memory (could be instruction fetch or could be the value loaded from the memory in sram)
-busy_o = the bus is busy
-*/
-
 module request_unit(
-    input logic clk, rst, memread, memwrite, // CPU side signals
-    input logic [4:0] data_address, 
-    input logic [31:0] instruction_address, alu_result, 
-    input logic busy_o, // wish bone
-    input logic [31:0] cpu_dat_o, // wishbone side signals as inputs
+    input logic clk, rst, memread, memwrite, 
+    // CPU side signals
+    input logic [31:0] data_to_write, 
+    // address of the variable we are trying to write data into (memory wise); computed from the ALU  
+    input logic [31:0] instruction_address, data_address, 
+    // instruction address should just be the program counter and the 
+    // alu result is just the result from the alu we are trying to 
+    input logic busy_o, 
+    // wish bone
+    input logic [31:0] cpu_dat_o, 
+    // wishbone side signals as inputs
     output logic read_i, write_i, 
     output logic [31:0] cpu_dat_i,
     output logic [31:0] instruction,
-    output logic [4:0] adr_i,
+    output logic [31:0] adr_i,
     output logic [31:0] data_read,
     output logic [3:0] sel_i,
     output logic i_hit // pc enable signal 
 );
 
 typedef enum logic [1:0] {
-    IDLE, BUSY
+    IDLE, MEM_READ, MEM_WRITE, INSTRUCTION_READ
 } state_t;
 
+logic [31:0] next_adr, next_cpu_dat, next_instruction;
 state_t state, next_state;
-logic request_type, next_request_type, next_i_hit; // if 1, we are requesting data from memory (like IF or DF so on and so forth so yeah)
+logic d_hit, next_read, next_write;
+logic [31:0] next_data_read;
+logic request_type, next_request_type, next_i_hit, next_d_hit; // if 1, we are requesting data from memory (like IF or DF so on and so forth so yeah)
 
-always_ff @(posedge clk, negedge rst) begin
-    if(!rst) begin
-        read_i <= 1'b0; // read request
-        write_i <= 1'b0; // write request
-        adr_i <= '0; // address
-        cpu_dat_i <= '0; // cpu data
-        sel_i <= '0;
-        instruction <= '0;
-        i_hit <= 1'b0;
+always_ff @(posedge clk, posedge rst) begin
+    if(rst) begin
         state <= IDLE;
-        i_request = 1'b0;
-        d_hit <= 1'b0;
+        // TO wishbone signals
+        //read_i <= 1'b0; // read request
+        //write_i <= 1'b0; // write request
+        adr_i <= 32'b0; // address to the wishbone
+        cpu_dat_i <= 32'b0; // cpu data to wish bone
+        sel_i <= 4'b0; // number of bits per transfer to wishbone
+        // TO CPU 
+        instruction <= 32'b0; // instruction to CPU
+        data_read <= 32'b0;
+        i_hit <= 1'b0; // Instruction hit
+        state <= IDLE; 
+        //i_request = 1'b0;
+        d_hit <= 1'b0; // DATA HIT
     end else begin
-        read_i <= next_read;
-        write_i <= next_write;
+        state <= next_state; 
+        //read_i <= next_read;
+        //write_i <= next_write;
         adr_i <= next_adr;
         cpu_dat_i <= next_cpu_dat;
         sel_i <= 4'd15;
         instruction <= next_instruction;
         d_hit <= next_d_hit;
-        i_hit <= next_i_hit;
         state <= next_state;
-        i_request <= next_i_request;
+        i_hit <= next_i_hit;
+        //i_request <= next_i_request;
     end
 end
 
-    always_comb begin
-        // if we are busy, we want to retain our current values below
-        next_adr = adr_i;
-        next_read = read_i;
-        next_write = write_i;
-        next_cpu_dat = cpu_dat_i;
-        next_instruction = instruction;
-        next_i_hit = i_hit;
-        next_d_hit = d_hit;
-        next_state = state;
-        next_i_request = i_request;
-        case(state)
-            IDLE : begin
-                next_state = (!busy_o) ? BUSY : IDLE; 
-                if(memread && !d_hit) begin // reading data from memory to write back
-
-                    // settings to the wishbone interface bus
-
-                    next_read = 1'b1; // enabling read
-                    next_write = 1'b0; // disabling write
-                    next_adr = alu_result; // setting the address to the address computed by the alu
-                    next_request_type = 1'b0; 
-
-                end else if (memwrite &&  !d_hit) begin // writing data into memory
-
-                    // settings to the wishbone interface bus
-
-                    next_read = 1'b0; // disabling read
-                    next_write = 1'b1; // enabling write
-                    next_adr = data_address; // address of the data we want to write into
-                    next_cpu_dat = alu_result; // data we are writing into
-                    next_i_request = 1'b0; // we are not requesting data
-
-                end else begin // instruction fetching from the memory
-
-                    // settings to the wishbone interface bus
-
-                    next_read = 1'b1; // enabling read
-                    next_write = 1'b0; // disabling write
-                    next_adr = data_address; // setting the address of the instruction we are trying to fetch currently
-                    next_i_request = 1'b1; // requesitng from memory
-                end
+always_comb begin
+    next_state = state;
+    read_i = 1'b0;
+    write_i = 1'b0;
+    next_adr = 32'b0;
+    next_cpu_dat = 32'b0;
+    next_i_hit = 1'b0;
+    next_d_hit = 1'b0;
+    next_data_read = 32'b0;
+    next_instruction = (memread || memwrite) ? instruction : 32'b0;
+    case(state) 
+        IDLE: begin
+                if(memwrite && !d_hit) begin
+                    next_state = MEM_WRITE;
+                    read_i = 1'b0;
+                    write_i = 1'b1;
+                    next_adr = data_address;
+                    next_cpu_dat = data_to_write;
+                    next_instruction = instruction;
+                end else if (memread && !d_hit) begin
+                    next_state = MEM_READ;
+                    read_i = 1'b1;
+                    write_i = 1'b0;
+                    next_adr = data_address;
+                    next_cpu_dat = 32'b0;
+                    next_instruction = instruction;
+                end else if (!i_hit) begin
+                    next_state = INSTRUCTION_READ;
+                    read_i = 1'b1;
+                    write_i = 1'b0;
+                    next_adr = instruction_address;
+                    //next_cpu_dat = '0;
+           end 
+        end
+        MEM_WRITE : begin
+            next_instruction = instruction;
+            next_adr = adr_i;
+            next_cpu_dat = cpu_dat_i;
+            if(!busy_o) begin
+                next_state = IDLE;
+                next_d_hit = 1'b1; // registered
+                next_cpu_dat = 32'b0;
+                next_adr = 32'b0;
+            end 
+        end
+        MEM_READ : begin
+            next_instruction = instruction;
+            next_adr = adr_i;
+            //next_cpu_dat = '0;
+            if(!busy_o) begin
+                next_adr = 32'b0;
+                next_data_read  = cpu_dat_o;
+                next_state = IDLE;    
+                next_d_hit = 1'b1; // registered?  
             end
-            
-            BUSY : begin
-                if(!busy_o) begin
-                    next_d_hit = !i_request;
-                    next_i_hit = i_request; // We only want pc counter to increment when we get an instruction fetch hit
-                    // Note, we might not need to register the i_hit at all now, might need to double check the timing of this
-                    next_state = IDLE;
-
-                    if(memread) begin
-                        data_read = cpu_dat_o; // data to be written back into the register                        
-                    end else begin
-                        next_instruction = cpu_dat_o; // The next instruction
-                    end
-                end
+        end
+        INSTRUCTION_READ : begin
+            //next_instruction = '0; // NOP
+            next_adr = adr_i;
+            //next_cpu_dat = '0;
+            if(!busy_o) begin
+                next_adr = 32'b0;
+                next_instruction = cpu_dat_o;
+                next_state = IDLE;
+                next_i_hit = 1'b1;
             end
-        endcase
-   end
+        end
+    endcase
+end
 
 endmodule

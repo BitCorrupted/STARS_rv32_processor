@@ -94,12 +94,11 @@ module core(
   // assign left = program_counter[7:0];
    wire [31:0]reg8_data;
    wire [31:0] reg7_data;
-   wire [31:0] IO_out, IO_pwm, IO_in, IO_pwm2, IO_pwm3;
-   assign left[6:0] = reg8_data[6:0];
-   
-   assign right[3:0] = IO_out[3:0];
-   assign left[7] = IO_out[8];
+   wire [31:0] IO_out, IO_pwm, IO_in, IO_pwm2;
+   assign left[4:0] = reg8_data[4:0];
+   assign right[5:0] = IO_out[5:0];
    assign IO_in[7:0] = pb[7:0];
+   assign left[5] = IO_out[8];
 
   //  logic signed [31:0] pid_dut;
   //  assign pid_dut = 32'b11111111111111100111100101100000;
@@ -109,12 +108,13 @@ module core(
   
   //this is a test
 
+logic [31:0] IO_pwm3;
 
 
 
 logic keyclk;
 logic keyclk1;
-  synckey s1(.in({19'b0, pb[9]}), .out(), .strobe(keyclk1), .clk(hz100), .rst(reset));
+  synckey s1(.in(IO_out[8]), .out(), .strobe(keyclk1), .clk(hz100), .rst(reset));
 
   clock_controller clock_controller(.halt(1'b0), .cpu_clock(keyclk), .clock(keyclk1), .reset(reset));
 
@@ -136,7 +136,8 @@ logic keyclk1;
 
   pwm p_time(.duty(IO_pwm), .clk(hz100), .rst(reset), .pwm_signal(right[7]));
   pwm p_time2(.duty(IO_pwm2), .clk(hz100), .rst(reset), .pwm_signal(right[6]));
-  pwm p_time3(.duty(IO_pwm3), .clk(hz100), .rst(reset), .pwm_signal(right[4]));
+  pwm p_time3(.duty(IO_pwm3), .clk(hz100), .rst(reset), .pwm_signal(left[6]));
+
 
   IO_mod_robot IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
   .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .IO_pwm2(IO_pwm2), .data_read(data_read));
@@ -150,8 +151,7 @@ logic keyclk1;
 
    imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen(imm_gen));
 
-   coil launch(.trig(), .rst(reset), .clk(hz100), .charge_out(right[5]), .duty(IO_pwm3));
-
+   coil gun(.trig(IO_out[8]), .rst(reset), .clk(hz100), .charge_out(left[7]), .duty(IO_pwm3));
   
 endmodule
 
@@ -687,32 +687,12 @@ end
 endmodule
 
 module synckey(
-  input logic [19:0] in,
+  input logic in,
   output logic [4:0] out,
   output logic strobe,
   input logic clk, rst
 );
 
-assign out = in[19] ? 5'd19:
-in[18] ? 5'd18: 
-in[17] ? 5'd17: 
-in[16] ? 5'd16: 
-in[15] ? 5'd15: 
-in[14] ? 5'd14: 
-in[13] ? 5'd13: 
-in[12] ? 5'd12: 
-in[11] ? 5'd11: 
-in[10] ? 5'd10: 
-in[9] ? 5'd9: 
-in[8] ? 5'd8: 
-in[7] ? 5'd7: 
-in[6] ? 5'd6: 
-in[5] ? 5'd5: 
-in[4] ? 5'd4: 
-in[3] ? 5'd3: 
-in[2] ? 5'd2: 
-in[1] ? 5'd1:  
-in[0] ? 5'd0: 5'd0;
 
 //assign strobe = |in;
 

@@ -20,8 +20,8 @@ _boot:                    /* x0  = 0    0x000 */
       li x20, 0 /*pid val*/
       li x21, 100000 /*max pwm*/
       li x22, 0 /*output_reg*/
-      sw x23, 11(x0) /*put in ram*/
-      li x23, 8 /*mode toggle*/
+      li x23, 8 /*mode switch val*/
+      li x26, 0 /*mode*/
 
       beq x0, x0, pid_loop
     
@@ -38,9 +38,8 @@ _boot:                    /* x0  = 0    0x000 */
         beq x0, x0, get_msb /*else keep shifting*/
         
 	pid:
-    	lw x23, 11(x0) /*get switch val from ram*/
-    	beq x12, x23, switch_mode
     	add x8, x0, x12 /*see shifted num should be 0*/
+        beq x12, x23, mode_switch
         
         sub x13, x12, x10 /*error or p_term*/
         add x14, x14, x13 /*i term*/
@@ -56,18 +55,10 @@ _boot:                    /* x0  = 0    0x000 */
         add x20, x13, x14 
         add x20, x20, x16 /*add to get PID val*/
         
-        lw x23, 12(x0) /*get mode from ram*/
-        beq x23, x9, check_coil_gun /*check if firing mode*/
+        beq x0, x0, check_mode /*check mode*/
+       
         
-        beq x12, x0, forward /*go forward*/
-        sw x20, 0(x30) /*set left pwm*/
-        sw x20, 0(x28) /*set right pwm*/
         
-        /*5 forward, 10 backward, 9 right, 6 left*/
-        bge x20, x0, turn_right /*turn right if negative*/
-        li x22, 6 /*turn left value*/
-        sw x22, 0(x31) /*turn left enable*/
-    	beq x0, x0, pid_loop /*restart loop*/
         
         
 	turn_right:
@@ -84,22 +75,51 @@ _boot:                    /* x0  = 0    0x000 */
         sw x22, 0(x31) /*turn left enable*/
     	beq x0, x0, pid_loop /*restart loop*/
         
-    
-    switch_mode:
-    	li x23, 1 /*mode is firing mode*/
-        sw x23, 12(x0) /*move mode to ram*/
-        jalr x0, x1, 0 /*jump to calling*/
-        
-    check_coil_gun:
-    	 beq x24, x0, fire_coil_gun /*start firing sequence if error is 0*/
-         jalr x0, x1, 0 /*jump to calling*/
-    
-        
 	fire_coil_gun:
     	sw x0, 0(x30) /*set left pwm*/
         sw x0, 0(x28) /*set right pwm*/
     	li x25, 256 /*coil gun signal*/
         sw x25, 0(x31) /*output signal*/
+        li x25, 0 /*toggle switch*/
+        sw x25, 0(x31) /*toggle mem*/
+        beq x0,x0, do_nothing
+       
+	do_nothing:
+    	nop
+        beq x0, x0, do_nothing
+        
+    mode_switch:
+    	li x26, 1 /*change_mode*/
+        li x23, 19 /*change to something that wont be triggered*/
+        beq x0, x0, pid_loop /*go back to loop*/
+        
+        
+        
+   	check_mode:
+    	beq x26, x9, fire_check /*fire coil gun if mode*/
+        beq x12, x0, forward /*go forward*/
+        sw x20, 0(x30) /*set left pwm*/
+        sw x20, 0(x28) /*set right pwm*/
+        
+        /*5 forward, 10 backward, 9 right, 6 left*/
+        bge x20, x0, turn_right /*turn right if negative*/
+        li x22, 6 /*turn left value*/
+        sw x22, 0(x31) /*turn left enable*/
+    	beq x0, x0, pid_loop /*restart loop*/
+   
+   	fire_check:
+    	beq x24, x0, fire_coil_gun /*start firing sequence if error is 0*/
+    	beq x12, x0, forward /*go forward*/
+        sw x20, 0(x30) /*set left pwm*/
+        sw x20, 0(x28) /*set right pwm*/
+        
+        /*5 forward, 10 backward, 9 right, 6 left*/
+        bge x20, x0, turn_right /*turn right if negative*/
+        li x22, 6 /*turn left value*/
+        sw x22, 0(x31) /*turn left enable*/
+    	beq x0, x0, pid_loop /*restart loop*/
+   		
+    	
     	
     	
 
