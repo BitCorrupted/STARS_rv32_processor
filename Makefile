@@ -34,7 +34,7 @@ $(BUILD)/$(PROJ).json : $(ICE) $(SRC) $(PINMAP) Makefile
 
 $(BUILD)/$(PROJ).asc : $(BUILD)/$(PROJ).json
 	# Place and route using nextpnr
-	$(NEXTPNR) --hx8k --package ct256 --pcf $(PINMAP) --asc $(BUILD)/$(PROJ).asc --json $(BUILD)/$(PROJ).json 2> >(sed -e 's/^.* 0 errors$$//' -e '/^Info:/d' -e '/^[ ]*$$/d' 1>&2)
+	$(NEXTPNR) --hx8k --freq 10 --package ct256 --pcf $(PINMAP) --asc $(BUILD)/$(PROJ).asc --json $(BUILD)/$(PROJ).json 2> >(sed -e 's/^.* 0 errors$$//' -e '/^Info:/d' -e '/^[ ]*$$/d' 1>&2)
 
 $(BUILD)/$(PROJ).bin : $(BUILD)/$(PROJ).asc
 	# Convert to bitstream using IcePack

@@ -22,7 +22,7 @@ typedef enum logic [3:0] {
 
 module top (
   // I/O ports
-  input  logic hwclk, reset,
+  input  logic serclk, reset,
   input  logic [20:0] pb,
   output logic [7:0] left, right,
          ss7, ss6, ss5, ss4, ss3, ss2, ss1, ss0,
@@ -36,7 +36,7 @@ module top (
 );
 
 wire [31:0] ssdata;
-core core(.hz100(hwclk), .reset(reset || pb[1]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
+core core(.hz100(serclk), .reset(reset || pb[20]), .left(left), .right(right), .ssdata(ssdata), .pb(pb));
 ssdec ssd0(ssdata[3:0], 1'b1, ss0[6:0]);
 ssdec ssd1(ssdata[7:4], 1'b1, ss1[6:0]);
 ssdec ssd2(ssdata[11:8], 1'b1, ss2[6:0]);
@@ -85,7 +85,7 @@ module core(
     logic Z, N, C, V;
 
     logic b_out;
-    logic [31:0] data_to_write, data_read;
+    logic [31:0] data_to_write, data_read, data_to_IO;
     logic pc_en;
     logic slt;
     logic u;
@@ -94,25 +94,32 @@ module core(
   // assign left = program_counter[7:0];
    wire [31:0]reg8_data;
    wire [31:0] reg7_data;
-   assign ssdata = reg8_data;
-   assign right[6] = pb[17];
+   wire [31:0] IO_out, IO_pwm, IO_in, IO_pwm2;
+   assign left[4:0] = reg8_data[4:0];
+   assign right[5:0] = IO_out[5:0];
+   assign IO_in[7:0] = pb[7:0];
+   assign left[5] = IO_out[8];
+
+  //  logic signed [31:0] pid_dut;
+  //  assign pid_dut = 32'b11111111111111100111100101100000;
   //assign right = reg8_data[7:0];
 //    assign reset = pb[20];
 
   
   //this is a test
 
+logic [31:0] IO_pwm3;
 
 
 
 logic keyclk;
 logic keyclk1;
-  synckey s1(.in({19'b0, pb[9]}), .out(), .strobe(keyclk1), .clk(hz100), .rst(reset));
+  synckey s1(.in(IO_out[8]), .out(), .strobe(keyclk1), .clk(hz100), .rst(reset));
 
   clock_controller clock_controller(.halt(1'b0), .cpu_clock(keyclk), .clock(keyclk1), .reset(reset));
 
   ram ram(.clk(hz100), .rst(reset), .data_address(result), .instruction_address(program_counter), .dm_read_en(read_mem), .dm_write_en(write_mem),
-    .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_read), .pc_enable(pc_en));
+    .data_to_write(data_to_write), .instruction_read(inst), .data_read(data_to_IO), .pc_enable(pc_en));
   
   decoder decoder(.inst(inst), .rs1(regA), .rs2(regB), .rd(rd), .type_out(i_type), .control_out(instruction));
 
@@ -127,7 +134,13 @@ logic keyclk1;
 
    writeback writeback(.memory_value(data_read), .ALU_value(result), .pc_4_value(program_counter_out), .mem_to_reg(mem_to_reg), .load_byte(load_byte), .read_pc_4(1'b0), .register_write(register_write_data), .slt(slt), .ALU_neg_flag(N), .ALU_overflow_flag(V));
 
-  pwm p_time(.duty(reg7_data), .clk(hz100), .pwm_signal(left[0]));
+  pwm p_time(.duty(IO_pwm), .clk(hz100), .rst(reset), .pwm_signal(right[7]));
+  pwm p_time2(.duty(IO_pwm2), .clk(hz100), .rst(reset), .pwm_signal(right[6]));
+  pwm p_time3(.duty(IO_pwm3), .clk(hz100), .rst(reset), .pwm_signal(left[6]));
+
+
+  IO_mod_robot IO_mod_robot(.clk(hz100), .rst(reset), .data_address(result), .data_from_mem(data_to_IO), .data_to_write(data_to_write), 
+  .write_mem(write_mem), .read_mem(read_mem), .IO_out(IO_out), .IO_pwm(IO_pwm), .IO_in(IO_in), .IO_pwm2(IO_pwm2), .data_read(data_read));
 
 
    byte_demux byte_demux(.reg_b(regB_data), .store_byte_en(store_byte), .b_out(data_to_write));
@@ -137,6 +150,8 @@ logic keyclk1;
    ALU ALU(.srda(regA_data), .fop(alu_op), .result(result), .Z(Z), .N(N), .V(V), .imm_gen(imm_gen), .srdb(regB_data), .alu_mux_en(alu_mux_en), .rda_u(regA_data), .rdb_u(regB_data), .u(u));
 
    imm_generator imm_generator(.inst(inst), .type_i(i_type), .imm_gen(imm_gen));
+
+   coil gun(.trig(IO_out[8]), .rst(reset), .clk(hz100), .charge_out(left[7]), .duty(IO_pwm3));
   
 endmodule
 
@@ -162,7 +177,7 @@ always_comb begin
     next_registers_state = registers_state;
 
 
-    if (register_write_en && rd_address != 5'b0) begin
+    if (register_write_en && (rd_address != 5'b0) && (rd_address != 5'd29) && (rd_address != 5'd30) && (rd_address != 5'd31) && (rd_address != 5'd28)) begin
         next_registers_state[rd_address] = register_write_data;
     end
 end
@@ -175,6 +190,11 @@ always_ff @(posedge clk, posedge rst) begin
         //end
         //registers_state <= '{default:'0};
         registers_state <= '0;
+        registers_state[29] <= 32'hFFFFFFFC;
+        registers_state[30] <= 32'hFFFFFFFD;
+        registers_state[31] <= 32'hFFFFFFFF;
+        registers_state[28] <= 32'hFFFFFFFE;
+
     end
 
     else begin
@@ -291,6 +311,7 @@ always_comb begin
         b_out = 1'b0;
 
     end
+    
 
 end
 
@@ -666,32 +687,12 @@ end
 endmodule
 
 module synckey(
-  input logic [19:0] in,
+  input logic in,
   output logic [4:0] out,
   output logic strobe,
   input logic clk, rst
 );
 
-assign out = in[19] ? 5'd19:
-in[18] ? 5'd18: 
-in[17] ? 5'd17: 
-in[16] ? 5'd16: 
-in[15] ? 5'd15: 
-in[14] ? 5'd14: 
-in[13] ? 5'd13: 
-in[12] ? 5'd12: 
-in[11] ? 5'd11: 
-in[10] ? 5'd10: 
-in[9] ? 5'd9: 
-in[8] ? 5'd8: 
-in[7] ? 5'd7: 
-in[6] ? 5'd6: 
-in[5] ? 5'd5: 
-in[4] ? 5'd4: 
-in[3] ? 5'd3: 
-in[2] ? 5'd2: 
-in[1] ? 5'd1:  
-in[0] ? 5'd0: 5'd0;
 
 //assign strobe = |in;
 
@@ -770,18 +771,132 @@ assign cpu_clock = clock && enable_clock;
 endmodule
 
 module pwm (
-  input [31:0] duty,
-  input clk,
-  output pwm_signal
+  input logic signed [31:0] duty,
+  input logic clk, rst,
+  output logic pwm_signal
 );
+logic [31:0] duty1;
+logic [31:0] counter;
 
-  reg [31:0] counter = 0;
+always_comb begin
+  if (duty < 0)
+  duty1 = -duty;
+  else if (duty > 0) begin
+  duty1 = duty;
+  end
+  else begin
+  duty1 = 32'd0;
+  end
+end
   
-  always @ (posedge clk) begin
-    if (counter < 588000) counter <= counter + 1;
-    else counter <= 0;
+  always_ff@(posedge clk, posedge rst) begin
+    if (rst) begin
+      counter <= '0;
+
+    end
+
+    else if (counter < 588000) counter <= counter + 1;
+    else counter <= '0;
   end
 
-  assign pwm_signal = (counter < duty) ? 1:0;
+  assign pwm_signal = (counter < duty1) ? 1:0;
+
+
+endmodule
+
+module IO_mod_robot(
+     input logic clk, rst,
+    input logic write_mem, read_mem,
+    input logic [31:0] data_from_mem,
+    input logic [31:0] data_address, data_to_write,
+    output logic [31:0] data_read,
+    output logic [31:0] IO_out, IO_pwm, IO_pwm2,
+    input logic [31:0] IO_in
+);
+ logic [31:0] output_reg, input_reg, pwm_reg, pwm2_reg;
+ logic [31:0] next_output_reg, next_input_reg, next_pwm_reg, next_pwm2_reg;
+ 
+
+
+always_ff @(posedge clk, posedge rst) begin
+    if (rst) begin
+        IO_out <= '0;
+        input_reg <= '0;
+        IO_pwm <= '0;
+        IO_pwm2 <= '0;
+    end
+
+    else begin
+        IO_out <= next_output_reg;
+        input_reg <= IO_in;
+        IO_pwm <= next_pwm_reg;
+        IO_pwm2 <= next_pwm2_reg;
+
+    end
+
+end
+
+always_comb begin
+
+    next_output_reg = IO_out;
+    next_pwm_reg = IO_pwm;
+    next_pwm2_reg = IO_pwm2;
+    data_read = data_from_mem;
+    case(data_address)
+        32'hFFFFFFFF: begin
+           next_output_reg = (write_mem) ? data_to_write : IO_out;
+        end
+        32'hFFFFFFFD: begin
+           next_pwm_reg = (write_mem) ? data_to_write : IO_pwm;
+        end
+        32'hFFFFFFFE: begin
+           next_pwm2_reg = (write_mem) ? data_to_write : IO_pwm2;
+        end
+        32'hFFFFFFFC: begin
+           data_read = (read_mem) ? input_reg : data_from_mem;
+        end
+    endcase
+end
+
+
+endmodule
+
+module coil (
+    input logic trig, rst, clk,
+    output logic charge_out,
+    output logic [31:0] duty
+);
+logic trig_store, charge;
+assign charge_out = ~charge;
+
+always_ff @(posedge clk, posedge rst) begin
+    if (rst) begin
+        trig_store <= 1'b0;
+    end
+    else begin 
+        trig_store <= (trig_store ^ trig);
+    end
+end
+
+logic [31:0] counter;
+always @ (posedge clk, posedge rst) begin
+if (rst) begin 
+    counter <= 32'd0;
+end
+else if ((counter < 100000000) && trig_store) begin 
+    counter <= counter + 1;
+    charge <= 1'b1;
+end
+else if (counter == 100000000) begin 
+    duty <= 32'd10000;
+    charge <= 1'b0;
+
+end
+else begin
+    charge <= 1'b0;
+    duty <= 32'd20000;
+
+end
+end
 
 endmodule
